@@ -12,7 +12,6 @@ import org.apache.http.HttpStatus;
 import org.apache.http.ParseException;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.util.EntityUtils;
-import org.raje.test.common.AsynCallBack;
 import org.raje.test.common.RequestContext;
 import org.raje.test.common.RequestLoadRunner;
 import org.raje.test.common.Result;

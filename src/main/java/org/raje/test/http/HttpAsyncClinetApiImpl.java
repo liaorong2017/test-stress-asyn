@@ -1,7 +1,6 @@
 package org.raje.test.http;
 
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
@@ -40,16 +39,17 @@ public class HttpAsyncClinetApiImpl implements AsyncClinetApi {
 
 	public void sendRequest(RequestContext context) {
 		try {
-			if (semaphore.tryAcquire(httpConfig.getAcquireTimeout(), TimeUnit.MILLISECONDS)) {
-				context.setStartTime(System.currentTimeMillis());
-				HttpRequestBase httpRequest = null;
-				if (httpConfig.getMethod().trim().toUpperCase().equals("POST")) {
-					httpRequest = buidHttpPost(new String(context.getReqBytes()));
-				} else {
-					httpRequest = buidHttpGet();
-				}
-				httpAsyncClient.execute(httpRequest, new HttpFutureCallback(context, monitor, semaphore));
+			// if (semaphore.tryAcquire(httpConfig.getAcquireTimeout(),
+			// TimeUnit.MILLISECONDS)) {
+			context.setStartTime(System.currentTimeMillis());
+			HttpRequestBase httpRequest = null;
+			if (httpConfig.getMethod().trim().toUpperCase().equals("POST")) {
+				httpRequest = buidHttpPost(new String(context.getReqBytes()));
+			} else {
+				httpRequest = buidHttpGet();
 			}
+			httpAsyncClient.execute(httpRequest, new HttpFutureCallback(context, monitor, semaphore));
+			// }
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
