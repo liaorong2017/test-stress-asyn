@@ -22,7 +22,7 @@ public class HttpConfig {
 	private String url;
 
 	// 最大连接数
-	@Value("${http.max.connect:200}")
+	@Value("${max.current}")
 	private int maxHttpConnect;
 
 	// 请求连接超时时间

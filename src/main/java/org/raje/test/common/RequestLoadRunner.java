@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
+import org.raje.test.monitor.Counter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +16,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class RequestLoadRunner {
+	@Resource
+	private Counter counter;
+	
 	private final Logger LG = LoggerFactory.getLogger(RequestLoadRunner.class);
 	private ScheduledExecutorService scheduledExecutorService = Executors
 			.newSingleThreadScheduledExecutor(new ThreadFactory() {
@@ -28,6 +32,8 @@ public class RequestLoadRunner {
 
 	@Value("${concurrent}")
 	private String conCurrencyStr;
+	
+	
 
 	@Resource
 	private RequestContextTask task;
@@ -66,6 +72,9 @@ public class RequestLoadRunner {
 	}
 
 	private void loadRun(int lastTimeSeconds, int concurrentCount) {
+		if(concurrentCount > counter.counterTPS()) {
+			concurrentCount = (int) (counter.counterTPS());
+		}		
 		double totalRequest = lastTimeSeconds * concurrentCount;
 		double totalMicroSeconds = lastTimeSeconds * 1000 * 1000;
 		int timeInterval = 1;
