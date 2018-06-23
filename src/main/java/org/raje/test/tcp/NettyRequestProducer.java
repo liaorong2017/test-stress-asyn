@@ -6,7 +6,6 @@ import javax.annotation.Resource;
 
 import org.raje.test.common.RequestContext;
 import org.raje.test.common.RequestProducer;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
