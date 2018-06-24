@@ -1,4 +1,4 @@
-package org.raje.test.monitor;
+package org.raje.test.common;
 
 import java.util.Arrays;
 

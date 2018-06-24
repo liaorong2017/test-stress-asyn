@@ -3,6 +3,7 @@ package org.raje.test.monitor;
 import javax.annotation.Resource;
 
 import org.raje.test.common.ConnectionResources;
+import org.raje.test.common.FixedArray;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
