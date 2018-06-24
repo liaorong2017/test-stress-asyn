@@ -1,7 +1,7 @@
 package org.raje.test.http;
 
-import org.raje.test.common.AsynCallBack;
 import org.raje.test.common.Result;
+import org.raje.test.request.AsynCallBack;
 import org.springframework.stereotype.Component;
 
 

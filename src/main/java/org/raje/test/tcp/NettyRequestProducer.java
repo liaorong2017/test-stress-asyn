@@ -4,8 +4,8 @@ import java.nio.charset.Charset;
 
 import javax.annotation.Resource;
 
-import org.raje.test.common.RequestContext;
-import org.raje.test.common.RequestProducer;
+import org.raje.test.request.RequestContext;
+import org.raje.test.request.RequestProducer;
 import org.springframework.stereotype.Component;
 
 @Component

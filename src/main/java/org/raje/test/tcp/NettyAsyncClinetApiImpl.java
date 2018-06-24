@@ -1,16 +1,14 @@
 package org.raje.test.tcp;
 
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
-import org.raje.test.common.AsyncClinetApi;
-import org.raje.test.common.RequestContext;
+import org.raje.test.common.ConnectionResources;
 import org.raje.test.common.Result;
-import org.raje.test.common.SemaphoreWithFlag;
 import org.raje.test.monitor.Monitor;
+import org.raje.test.request.AsyncClinetApi;
+import org.raje.test.request.RequestContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -33,13 +31,10 @@ public class NettyAsyncClinetApiImpl implements AsyncClinetApi {
 	@Resource
 	private Monitor monitor;
 
-	private Semaphore semaphore;
+	@Resource
+	private ConnectionResources resoures;
 
-	@PostConstruct
-	public void init() {
-		semaphore = new Semaphore(config.maxConnections, true);
-	}
-
+	
 	@Override
 	public void sendRequest(RequestContext context) {
 		try {
@@ -52,10 +47,10 @@ public class NettyAsyncClinetApiImpl implements AsyncClinetApi {
 							Channel ch = future.getNow();
 							ch.attr(NettyConstants.CHANNEL_POOL_KEY).set(nettyPool.fixedChannelPool);
 							ch.attr(NettyConstants.REQUEST_CONTEXT).set(context);
-							ch.attr(NettyConstants.COMMON_SEMAPHORE).set(new SemaphoreWithFlag(semaphore));
+							ch.attr(NettyConstants.COMMON_SEMAPHORE).set(resoures);
 							ch.writeAndFlush(new String(context.getReqBytes()));
 						} else {
-							semaphore.release();	
+							resoures.release();	
 							if (future.cause() instanceof ConnectTimeoutException) {
 								monitor.log(context.getStartTime(), Result.connectTimeout);
 							} else if (future.cause() instanceof TimeoutException

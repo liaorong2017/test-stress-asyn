@@ -4,10 +4,10 @@ import java.io.IOException;
 
 import javax.annotation.Resource;
 
-import org.raje.test.common.RequestContext;
+import org.raje.test.common.ConnectionResources;
 import org.raje.test.common.Result;
-import org.raje.test.common.SemaphoreWithFlag;
 import org.raje.test.monitor.Monitor;
+import org.raje.test.request.RequestContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -53,8 +53,8 @@ public class NettyChannelHandler extends SimpleChannelInboundHandler<String> {
 
 	@Override
 	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-		SemaphoreWithFlag semaphore = ctx.channel().attr(NettyConstants.COMMON_SEMAPHORE).get();
-		semaphore.release("channelInactive");
+		ConnectionResources semaphore = ctx.channel().attr(NettyConstants.COMMON_SEMAPHORE).get();
+		semaphore.release();
 		ctx.close().sync();
 		SimpleChannelPool pool = ctx.channel().attr(NettyConstants.CHANNEL_POOL_KEY).get();
 		if (pool != null) {

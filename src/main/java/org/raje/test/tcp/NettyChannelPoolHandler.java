@@ -2,7 +2,7 @@ package org.raje.test.tcp;
 
 import javax.annotation.Resource;
 
-import org.raje.test.common.SemaphoreWithFlag;
+import org.raje.test.common.ConnectionResources;
 import org.springframework.stereotype.Component;
 
 import io.netty.channel.Channel;
@@ -20,11 +20,13 @@ public class NettyChannelPoolHandler implements ChannelPoolHandler {
 	
 	@Resource
 	private NettyMessageAdapter nettyMessageAdapter;
+	
+	@Resource
+	private ConnectionResources resoures;
 
 	@Override
 	public void channelReleased(Channel ch) throws Exception {
-		SemaphoreWithFlag semaphore = ch.attr(NettyConstants.COMMON_SEMAPHORE).get();
-		semaphore.release("channelReleased");
+		resoures.release();
 	}
 
 	@Override

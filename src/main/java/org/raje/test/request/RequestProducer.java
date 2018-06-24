@@ -1,4 +1,4 @@
-package org.raje.test.common;
+package org.raje.test.request;
 
 public interface RequestProducer {
 

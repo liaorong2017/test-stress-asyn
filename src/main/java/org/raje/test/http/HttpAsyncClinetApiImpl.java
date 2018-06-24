@@ -1,6 +1,7 @@
 package org.raje.test.http;
 
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
@@ -11,19 +12,24 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.nio.client.HttpAsyncClient;
-import org.raje.test.common.AsyncClinetApi;
-import org.raje.test.common.RequestContext;
+import org.raje.test.monitor.Counter;
 import org.raje.test.monitor.Monitor;
+import org.raje.test.request.AsyncClinetApi;
+import org.raje.test.request.RequestContext;
 import org.springframework.stereotype.Component;
 
 @Component
 public class HttpAsyncClinetApiImpl implements AsyncClinetApi {
+	@Resource
+	private Counter counter;
+
 	@Resource
 	private HttpConfig httpConfig;
 
 	@Resource
 	private HttpAsyncClientPoolManager asyncHttpClientPoolManager;
 
+	@Resource
 	private Semaphore semaphore;
 
 	private HttpAsyncClient httpAsyncClient;;
@@ -33,14 +39,11 @@ public class HttpAsyncClinetApiImpl implements AsyncClinetApi {
 
 	@PostConstruct
 	public void init() {
-		semaphore = new Semaphore(httpConfig.getMaxHttpConnect(), true);
 		httpAsyncClient = asyncHttpClientPoolManager.getHttpAsyncClient();
 	}
 
 	public void sendRequest(RequestContext context) {
 		try {
-			// if (semaphore.tryAcquire(httpConfig.getAcquireTimeout(),
-			// TimeUnit.MILLISECONDS)) {
 			context.setStartTime(System.currentTimeMillis());
 			HttpRequestBase httpRequest = null;
 			if (httpConfig.getMethod().trim().toUpperCase().equals("POST")) {
@@ -49,7 +52,6 @@ public class HttpAsyncClinetApiImpl implements AsyncClinetApi {
 				httpRequest = buidHttpGet();
 			}
 			httpAsyncClient.execute(httpRequest, new HttpFutureCallback(context, monitor, semaphore));
-			// }
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

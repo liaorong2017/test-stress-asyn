@@ -25,8 +25,8 @@ public class HttpAsyncClientPoolManager {
 		IOReactorConfig ioReactorConfig = builderIOReactorConfig();
 		DefaultConnectingIOReactor ioreactor = new DefaultConnectingIOReactor(ioReactorConfig);
 		PoolingNHttpClientConnectionManager mngr = new PoolingNHttpClientConnectionManager(ioreactor);
-		mngr.setDefaultMaxPerRoute(httpConfig.getMaxHttpConnect());
-		mngr.setMaxTotal(httpConfig.getMaxHttpConnect() * 2);
+		mngr.setDefaultMaxPerRoute(Integer.MAX_VALUE);
+		mngr.setMaxTotal(Integer.MAX_VALUE);
 		httpAsyncClient = HttpAsyncClientBuilder.create().setConnectionManager(mngr).build();
 		httpAsyncClient.start();
 	}

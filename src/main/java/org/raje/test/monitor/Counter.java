@@ -1,29 +1,39 @@
 package org.raje.test.monitor;
 
+import javax.annotation.Resource;
+
+import org.raje.test.common.ConnectionResources;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class Counter {
-	@Value("${max.current}")
-	private long maxCurrent;
-
-	private static long currTime = System.currentTimeMillis();
-	private static long sucNumTmp = 0l;
-	private static long errNumTmp = 0l;
-	private static long totalTmp = 0l;
-	private static long allTimeCost = 0l;
-	private static long index = 1l;
-	private static long globalAvgCost = 0l;
 
 	private static final long sec = 1000;
+
+	@Value("${max.current}")
+	private long maxCurrent;
 
 	@Value("${interval_time_sec:5}")
 	private long intervalTime;
 
+	@Resource
+	private ConnectionResources semaphore;
+
+	private FixedArray currentRate = new FixedArray(10);
+
+	private long currTime = System.currentTimeMillis();
+	private long succCnt = 0l;
+	private long errCnt = 0l;
+	private long totalCnt = 0l;
+	private long totalCost = 0l;
+	private long index = 1l;
+	private long adjustAvgCost = 0l;
+	private long realMaxTps = 0l;
+	private long remmainCnt = 0l;
+
 	public void count(long startTime, int result, long costTime) {
 		synchronized (Counter.class) {
-			// doPriant();
 			if ((currTime + (intervalTime * sec)) < startTime) {
 				coutGlobalCost();
 				doPriant();
@@ -33,50 +43,91 @@ public class Counter {
 		}
 	}
 
-	private void doPriant() {	
+	private void doPriant() {
 		System.out.println(String.format(
-				"第%d个%d秒: curAvgCost:%d, sucNum:%d, failNum:%d, succRate:%d , curTPS:%d, globalAvgCost:%s,maxTps:%s",
-				index, intervalTime, allTimeCost / totalTmp, sucNumTmp, errNumTmp, sucNumTmp * 100 / totalTmp,
-				totalTmp / intervalTime, globalAvgCost, globalAvgCost == 0 ? 0 : counterTPS()));
-		
+				"第%d个%d秒: avgCost:%d, succ:%d, fail:%d, succRate:%d , curTPS:%d, -----[adjAvgCost:%s,adjTps:%s,realMaxTps:%s,current:%s,]",
+				index, intervalTime, totalCost / totalCnt, succCnt, errCnt, succCnt * 100 / totalCnt,
+				totalCnt / intervalTime, adjustAvgCost, adjustAvgCost == 0 ? 0 : adjustTPS(), realMaxTps,
+				this.maxCurrent - this.semaphore.availablePermits()));
 
 	}
 
 	private void coutGlobalCost() {
-		long currAvgCost = allTimeCost / totalTmp;
-		if (globalAvgCost == 0) {
-			globalAvgCost = currAvgCost;
+		long currAvgCost = totalCost / totalCnt;
+		if (adjustAvgCost == 0) {
+			adjustAvgCost = currAvgCost;
 		} else {
-			if ((currAvgCost * 100) / globalAvgCost < 150)
-				globalAvgCost = (currAvgCost * (index-1) + globalAvgCost) / index;
+			adjustAvgCost = (Math.max(currAvgCost, adjustAvgCost) + Math.min(currAvgCost, adjustAvgCost) * 2) / 3;
 		}
 	}
 
+	public long getAdjustAvgCost() {
+		return adjustAvgCost;
+	}
+
 	private void increment(long startTime, int result, long costTime) {
-		totalTmp++;
+		totalCnt++;
 		if (0 == result) {
-			sucNumTmp++;
+			succCnt++;
 		} else {
-			errNumTmp++;
+			errCnt++;
 		}
-		allTimeCost += costTime;
+		totalCost += costTime;
 	}
 
 	private void reset(long startTime) {
 		index++;
 		currTime = startTime;
-		sucNumTmp = 0l;
-		errNumTmp = 0l;
-		totalTmp = 0l;
-		allTimeCost = 0l;
+		succCnt = 0l;
+		errCnt = 0l;
+		totalCnt = 0l;
+		totalCost = 0l;
 	}
 
-	public long counterTPS() {
-		if (globalAvgCost == 0) {
+	public long adjustTPS() {
+		if (adjustAvgCost == 0) {
 			return Integer.MAX_VALUE;
 		}
-		return (1000 * maxCurrent) / globalAvgCost;
+		long theoreticalTps = (1000 * maxCurrent) / adjustAvgCost;
+		if (remmainCnt >= 10) {
+			long exceptTps = Math.min(theoreticalTps, realMaxTps);
+			int avgRate = currentRate.avgValue();
+			int resetMaxCurrent = (int) (Math.ceil(realMaxTps) * 100 / avgRate);
+			if (resetMaxCurrent < maxCurrent) {
+				System.out.println(String.format("resetMaxCurrent:%s,avgRate:%s", resetMaxCurrent, avgRate));
+				semaphore.reducePermits((int) (maxCurrent - resetMaxCurrent));
+				maxCurrent = resetMaxCurrent;
+				realMaxTps = 0;
+				remmainCnt = 0;
+			}
+			return exceptTps;
+		}
+		return theoreticalTps;
+	}
 
+	public long getIntervalTime() {
+		return intervalTime;
+	}
+
+	public long getRealMaxTps() {
+		return realMaxTps;
+	}
+
+	public void tryUpdateCurrentRate(long currTps) {
+		long current = (int) (maxCurrent - semaphore.availablePermits());
+		if (current > 0 && currTps > 0) {
+			int rate = (int) (currTps * 100 / current);
+			currentRate.tryUpdateMinValue(rate);
+		}
+	}
+
+	public void setRealMaxTps(long realMaxTps) {
+		if (this.realMaxTps >= realMaxTps) {
+			remmainCnt++;
+		} else {
+			remmainCnt = 0;
+		}
+		this.realMaxTps = Math.max(realMaxTps, this.realMaxTps);
 	}
 
 }

@@ -1,9 +1,11 @@
-package org.raje.test.common;
+package org.raje.test.request;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
@@ -19,6 +21,12 @@ public class RequestLoadRunner {
 	@Resource
 	private Counter counter;
 	
+	@Resource
+	private AtomicInteger currTpsPlain;
+	
+	@Resource
+	private AtomicLong periodRealDiscardCnt;
+
 	private final Logger LG = LoggerFactory.getLogger(RequestLoadRunner.class);
 	private ScheduledExecutorService scheduledExecutorService = Executors
 			.newSingleThreadScheduledExecutor(new ThreadFactory() {
@@ -27,13 +35,9 @@ public class RequestLoadRunner {
 					return new Thread(r, "req_load_runner");
 				}
 			});
-	
-	
 
 	@Value("${concurrent}")
 	private String conCurrencyStr;
-	
-	
 
 	@Resource
 	private RequestContextTask task;
@@ -43,15 +47,13 @@ public class RequestLoadRunner {
 
 	@PostConstruct
 	public void init() {
-
 		new Thread(requestSender, "req_sender").start();
-
 		loadTask();
 
 	}
 
 	public void loadTask() {
-		LG.info("--------------test concurrency------");
+		LG.info("--------------test tps start ------");
 		String[] testArr = conCurrencyStr.split("\\|");
 		int[] meterTimes = new int[testArr.length];
 		int[] meterConcurrency = new int[testArr.length];
@@ -61,20 +63,26 @@ public class RequestLoadRunner {
 			meterConcurrency[i] = Integer.parseInt(timeCon[1]);
 		}
 		for (int i = 0; i < meterConcurrency.length; i++) {
-			loadRun(meterTimes[i], meterConcurrency[i]);
-			try {
-				Thread.sleep(1000 * meterTimes[i]);
-			} catch (InterruptedException e) {
-				LG.error("testConcurrency sleep InterruptedException", e);
+			int intervalCnt = (int) Math.ceil(meterTimes[i] / (double) counter.getIntervalTime());
+			for (int j = 0; j < intervalCnt; j++) {
+				loadRun(counter.getIntervalTime(), exceptTps(meterConcurrency[i]));
 			}
 		}
 		System.exit(1);
 	}
 
-	private void loadRun(int lastTimeSeconds, int concurrentCount) {
-		if(concurrentCount > counter.counterTPS()) {
-			concurrentCount = (int) (counter.counterTPS());
-		}		
+	private int exceptTps(int plainTps) {
+		int exceptTps = (int) Math.min(plainTps, counter.adjustTPS());				
+		long actulTps = currTpsPlain.get() - periodRealDiscardCnt.get();
+		counter.setRealMaxTps(actulTps);
+		periodRealDiscardCnt.set(0);
+		currTpsPlain.set(exceptTps);
+		counter.tryUpdateCurrentRate(actulTps);
+		return exceptTps;
+	}
+
+	private void loadRun(long lastTimeSeconds, int concurrentCount) {
+		
 		double totalRequest = lastTimeSeconds * concurrentCount;
 		double totalMicroSeconds = lastTimeSeconds * 1000 * 1000;
 		int timeInterval = 1;
@@ -87,6 +95,17 @@ public class RequestLoadRunner {
 			timePassed = i * timeInterval;
 			scheduledExecutorService.schedule(task, timePassed, TimeUnit.MICROSECONDS);
 		}
+		try {
+			Thread.sleep(1000 * lastTimeSeconds);
+		} catch (InterruptedException e) {
+			LG.error("testConcurrency sleep InterruptedException", e);
+		}
+	}
+
+	public static void main(String[] args) {
+		// int tem = 12;
+		// Math.ceil(5/2.0)
+		System.out.println(Math.round(5 / 2.0));
 	}
 
 }

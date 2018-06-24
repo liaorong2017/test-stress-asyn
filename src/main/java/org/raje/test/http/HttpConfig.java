@@ -21,10 +21,6 @@ public class HttpConfig {
 	@Value("${http.url}")
 	private String url;
 
-	// 最大连接数
-	@Value("${max.current}")
-	private int maxHttpConnect;
-
 	// 请求连接超时时间
 	@Value("${http.request.conn.timeout.in.ms:1000}")
 	private int httpRequestConnTimeout;
@@ -68,21 +64,6 @@ public class HttpConfig {
 			}
 		}
 		LG.info("headers are :" + headers);
-	}
-
-	@Override
-	public String toString() {
-		return "HttpClientConfig{" + "maxHttpConnect=" + maxHttpConnect + ", httpConnTimeout='" + httpConnTimeout + '\''
-				+ ", httpReadTimeout=" + httpReadTimeout + ", keepAlive=" + keepAlive + ", acquireTimeout="
-				+ acquireTimeout + "}";
-	}
-
-	public int getMaxHttpConnect() {
-		return maxHttpConnect;
-	}
-
-	public void setMaxHttpConnect(int maxHttpConnect) {
-		this.maxHttpConnect = maxHttpConnect;
 	}
 
 	public int getHttpRequestConnTimeout() {

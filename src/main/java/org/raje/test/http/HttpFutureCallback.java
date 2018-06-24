@@ -12,10 +12,10 @@ import org.apache.http.HttpStatus;
 import org.apache.http.ParseException;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.util.EntityUtils;
-import org.raje.test.common.RequestContext;
-import org.raje.test.common.RequestLoadRunner;
 import org.raje.test.common.Result;
 import org.raje.test.monitor.Monitor;
+import org.raje.test.request.RequestContext;
+import org.raje.test.request.RequestLoadRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,6 +77,9 @@ public class HttpFutureCallback implements FutureCallback<HttpResponse> {
 			return;
 		} else if (ex instanceof SocketTimeoutException) {
 			monitor.log(context.getStartTime(), Result.readTimeout);
+			return;
+		}else if(ex instanceof IOException) {
+			monitor.log(context.getStartTime(), Result.connectionClosed);
 			return;
 		}
 
