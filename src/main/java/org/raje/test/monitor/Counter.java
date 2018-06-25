@@ -3,7 +3,6 @@ package org.raje.test.monitor;
 import javax.annotation.Resource;
 
 import org.raje.test.common.ConnectionResources;
-import org.raje.test.common.FixedArray;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +20,6 @@ public class Counter {
 	@Resource
 	private ConnectionResources semaphore;
 
-	private FixedArray currentRate = new FixedArray(10);
 
 	private long currTime = System.currentTimeMillis();
 	private long succCnt = 0l;
@@ -90,18 +88,8 @@ public class Counter {
 			return Integer.MAX_VALUE;
 		}
 		long theoreticalTps = (1000 * maxCurrent) / adjustAvgCost;
-		if (remmainCnt >= 10) {
-			long exceptTps = Math.min(theoreticalTps, realMaxTps);
-			int avgRate = currentRate.avgValue();
-			int resetMaxCurrent = (int) (Math.ceil(realMaxTps) * 100 / avgRate);
-			if (resetMaxCurrent < maxCurrent) {
-				System.out.println(String.format("resetMaxCurrent:%s,avgRate:%s", resetMaxCurrent, avgRate));
-				semaphore.reducePermits((int) (maxCurrent - resetMaxCurrent));
-				maxCurrent = resetMaxCurrent;
-				realMaxTps = 0;
-				remmainCnt = 0;
-			}
-			return exceptTps;
+		if (remmainCnt >= 10) {			
+			return Math.min(theoreticalTps, realMaxTps);
 		}
 		return theoreticalTps;
 	}
@@ -114,13 +102,6 @@ public class Counter {
 		return realMaxTps;
 	}
 
-	public void tryUpdateCurrentRate(long currTps) {
-		long current = (int) (maxCurrent - semaphore.availablePermits());
-		if (current > 0 && currTps > 0) {
-			int rate = (int) (currTps * 100 / current);
-			currentRate.tryUpdateMinValue(rate);
-		}
-	}
 
 	public void setRealMaxTps(long realMaxTps) {
 		if (this.realMaxTps >= realMaxTps) {

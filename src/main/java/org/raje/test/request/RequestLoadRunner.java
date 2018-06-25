@@ -77,7 +77,6 @@ public class RequestLoadRunner {
 		counter.setRealMaxTps(actulTps);
 		periodRealDiscardCnt.set(0);
 		currTpsPlain.set(exceptTps);
-		counter.tryUpdateCurrentRate(actulTps);
 		return exceptTps;
 	}
 
