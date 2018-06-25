@@ -44,9 +44,10 @@ public class HttpAsyncClinetApiImpl implements AsyncClinetApi {
 	public void sendRequest(RequestContext context) {
 		try {
 			context.setStartTime(System.currentTimeMillis());
+			HttpRequestProducer producer = (HttpRequestProducer) context.getProducer();
 			HttpRequestBase httpRequest = null;
 			if (httpConfig.getMethod().trim().toUpperCase().equals("POST")) {
-				httpRequest = buidHttpPost(new String(context.getReqBytes()));
+				httpRequest = buidHttpPost(producer.producerRequest());
 			} else {
 				httpRequest = buidHttpGet();
 			}

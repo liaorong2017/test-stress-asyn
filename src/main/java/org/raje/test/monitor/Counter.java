@@ -44,7 +44,7 @@ public class Counter {
 
 	private void doPriant() {
 		System.out.println(String.format(
-				"第%d个%d秒: avgCost:%d, succ:%d, fail:%d, succRate:%d , curTPS:%d, -----[adjAvgCost:%s,adjTps:%s,realMaxTps:%s,current:%s,]",
+				"第%d个%d秒: avgCost:%d, succ:%d, fail:%d, succRate:%d , TPS:%d, -----[adj--avgCost:%s,tps:%s,maxTps:%s,connect:%s]",
 				index, intervalTime, totalCost / totalCnt, succCnt, errCnt, succCnt * 100 / totalCnt,
 				totalCnt / intervalTime, adjustAvgCost, adjustAvgCost == 0 ? 0 : adjustTPS(), realMaxTps,
 				this.maxCurrent - this.semaphore.availablePermits()));

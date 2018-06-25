@@ -9,14 +9,17 @@ import org.springframework.stereotype.Component;
 @Component
 public class RequestContextTask implements Runnable {
 	@Resource
-	private RequestProducer producer;
+	private AsynCallBack<?> callBack;
+	
+	@Resource
+	private RequestProducer<?> producer;
 
 	@Resource(name="reqListBlocking")
 	private BlockingQueue<RequestContext> reqQueue;
 
 	@Override
 	public void run() {
-		reqQueue.add(producer.producerRequest());
+		reqQueue.add(new RequestContext(producer, callBack));
 	}
 
 }

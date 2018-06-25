@@ -40,6 +40,7 @@ public class NettyAsyncClinetApiImpl implements AsyncClinetApi {
 		try {
 			//if (semaphore.tryAcquire(config.acquireTimeoutMillis, TimeUnit.MILLISECONDS)) {
 				context.setStartTime(System.currentTimeMillis());
+				NettyRequestProducer producer = (NettyRequestProducer) context.getProducer();
 				nettyPool.getFixedChannelPool().acquire().addListener(new GenericFutureListener<Future<Channel>>() {
 					@Override
 					public void operationComplete(Future<Channel> future) throws Exception {
@@ -48,7 +49,7 @@ public class NettyAsyncClinetApiImpl implements AsyncClinetApi {
 							ch.attr(NettyConstants.CHANNEL_POOL_KEY).set(nettyPool.fixedChannelPool);
 							ch.attr(NettyConstants.REQUEST_CONTEXT).set(context);
 							ch.attr(NettyConstants.COMMON_SEMAPHORE).set(resoures);
-							ch.writeAndFlush(new String(context.getReqBytes()));
+							ch.writeAndFlush(producer.producerRequest());
 						} else {
 							resoures.release();	
 							if (future.cause() instanceof ConnectTimeoutException) {

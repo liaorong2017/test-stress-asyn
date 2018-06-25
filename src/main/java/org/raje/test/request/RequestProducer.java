@@ -1,6 +1,6 @@
 package org.raje.test.request;
 
-public interface RequestProducer {
+public interface RequestProducer<T> {
 
-	public RequestContext producerRequest();
+	public T producerRequest();
 }

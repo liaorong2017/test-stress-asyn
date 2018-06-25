@@ -1,20 +1,17 @@
 package org.raje.test.request;
 
 public class RequestContext {
-	private byte[] reqBytes;
+	private RequestProducer<?> producer;
 	private AsynCallBack<?> callBack;
 	private long startTime;
 
-	public RequestContext(byte[] reqBytes, AsynCallBack<?> callBack) {
+	public RequestContext(RequestProducer<?> producer, AsynCallBack<?> callBack) {
 		super();
-		this.reqBytes = reqBytes;
+		this.producer = producer;
 		this.callBack = callBack;
 		this.startTime = System.currentTimeMillis();
 	}
 
-	public byte[] getReqBytes() {
-		return reqBytes;
-	}
 
 	public AsynCallBack<?> getCallBack() {
 		return callBack;
@@ -27,5 +24,17 @@ public class RequestContext {
 	public void setStartTime(long startTime) {
 		this.startTime = startTime;
 	}
+
+
+	public RequestProducer<?> getProducer() {
+		return producer;
+	}
+
+
+	public void setProducer(RequestProducer<?> producer) {
+		this.producer = producer;
+	}
+	
+	
 
 }
