@@ -17,10 +17,12 @@ import org.raje.test.monitor.Monitor;
 import org.raje.test.request.PlainLoadRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
-public class HttpRequestContext implements FutureCallback<HttpResponse> {
+@Component
+public class HttpResponseCallback implements FutureCallback<HttpResponse> {
 	private final Logger LG = LoggerFactory.getLogger(PlainLoadRunner.class);
-	
+
 	private long start;
 
 	private Monitor monitor;
@@ -29,7 +31,7 @@ public class HttpRequestContext implements FutureCallback<HttpResponse> {
 
 	private HttpAsynCallBack callBack;
 
-	public HttpRequestContext(HttpAsynCallBack callBack, Monitor monitor, ConnectionResources semaphore) {
+	public HttpResponseCallback(HttpAsynCallBack callBack, Monitor monitor, ConnectionResources semaphore) {
 		super();
 		this.monitor = monitor;
 		this.connectionResources = semaphore;
@@ -57,6 +59,7 @@ public class HttpRequestContext implements FutureCallback<HttpResponse> {
 		} catch (IOException e) {
 			LG.error("completed error", e);
 		}
+
 
 	}
 

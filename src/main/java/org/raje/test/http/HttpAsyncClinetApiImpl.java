@@ -45,7 +45,7 @@ public class HttpAsyncClinetApiImpl implements AsyncClinetApi {
 
 	public void sendRequest() {
 		try {
-			HttpRequestContext callBack = new HttpRequestContext(this.callBack, this.monitor, this.connections);
+			HttpResponseCallback callBack = new HttpResponseCallback(this.callBack, this.monitor, this.connections);
 			HttpRequestBase httpRequest = null;
 			if (httpConfig.getMethod().trim().toUpperCase().equals("POST")) {
 				httpRequest = buidHttpPost(httpConfig.getBody());
