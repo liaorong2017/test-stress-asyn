@@ -7,7 +7,6 @@ import javax.annotation.Resource;
 import org.raje.test.common.ConnectionResources;
 import org.raje.test.common.Result;
 import org.raje.test.monitor.Monitor;
-import org.raje.test.request.RequestContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -26,13 +25,14 @@ public class NettyChannelHandler extends SimpleChannelInboundHandler<String> {
 
 	@Resource
 	private Monitor montor;
+	
+	@Resource
+	private NettyAsynCallBack callBack;
 
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
 		SimpleChannelPool pool = ctx.channel().attr(NettyConstants.CHANNEL_POOL_KEY).get();
-		RequestContext rcxt = ctx.channel().attr(NettyConstants.REQUEST_CONTEXT).get();
-		NettyAsynCallBack callBack = (NettyAsynCallBack) rcxt.getCallBack();
-		long start = rcxt.getStartTime();
+		long start =  ctx.channel().attr(NettyConstants.REQUEST_CONTEXT).get();		
 		Result result = null;
 		try {
 			result = callBack.callBack(msg);
@@ -65,8 +65,7 @@ public class NettyChannelHandler extends SimpleChannelInboundHandler<String> {
 
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-		RequestContext rcxt = ctx.channel().attr(NettyConstants.REQUEST_CONTEXT).get();
-		long start = rcxt.getStartTime();
+		long start = ctx.channel().attr(NettyConstants.REQUEST_CONTEXT).get();
 		if (cause instanceof IOException) {
 			montor.log(start, Result.connectionClosed);
 		} else {
@@ -78,8 +77,7 @@ public class NettyChannelHandler extends SimpleChannelInboundHandler<String> {
 
 	@Override
 	public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-		RequestContext rcxt = ctx.channel().attr(NettyConstants.REQUEST_CONTEXT).get();
-		long start = rcxt.getStartTime();
+		long start = ctx.channel().attr(NettyConstants.REQUEST_CONTEXT).get();
 		if (IdleStateEvent.class.isAssignableFrom(evt.getClass())) {
 			IdleStateEvent event = (IdleStateEvent) evt;
 			if (event.state() == IdleState.READER_IDLE) {

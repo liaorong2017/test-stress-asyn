@@ -1,6 +1,5 @@
 package org.raje.test.request;
 
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -8,6 +7,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Resource;
 
+import org.raje.test.common.ConnectionResources;
 import org.raje.test.monitor.Counter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,21 +18,21 @@ import org.springframework.stereotype.Component;
 public class RequestSender implements Runnable {
 	private static final Logger LG = LoggerFactory.getLogger(RequestSender.class);
 
-	@Resource(name = "reqListBlocking")
-	private BlockingQueue<RequestContext> reqQueue;
-
 	@Resource
 	private AsyncClinetApi api;
 
 	@Resource
-	private Semaphore semaphore;
+	private ConnectionResources connections;
+
+	@Resource
+	private Semaphore staySenderRequest;
 
 	@Resource
 	private Counter counter;
 
 	@Resource
 	private AtomicInteger currTpsPlain;
-	
+
 	@Resource
 	private AtomicLong periodRealDiscardCnt;
 
@@ -45,15 +45,15 @@ public class RequestSender implements Runnable {
 	public void run() {
 		while (true) {
 			try {
-				RequestContext context = reqQueue.take();
+				staySenderRequest.acquire();
 				if (discardCnt.get() > 0)
-					discardCnt.decrementAndGet();			
+					discardCnt.decrementAndGet();
 				if (discardCnt.get() <= 0) {
-					trySendRequest(context);
+					if(!trySendRequest()){
+						periodRealDiscardCnt.incrementAndGet();
+					}
 				} else {
-					if (semaphore.availablePermits() > 0) {
-						trySendRequest(context);
-					}else {
+					if (!trySendRequestNoWait()) {
 						periodRealDiscardCnt.incrementAndGet();
 					}
 				}
@@ -65,15 +65,24 @@ public class RequestSender implements Runnable {
 
 	}
 
-	private void trySendRequest(RequestContext context) throws InterruptedException {
-		context.setStartTime(System.currentTimeMillis());
-		if (semaphore.tryAcquire(acquireTimeout, TimeUnit.MILLISECONDS)) {
-			api.sendRequest(context);
+	private boolean trySendRequest() throws InterruptedException {
+		long start = System.currentTimeMillis();
+		if (connections.tryAcquire(acquireTimeout, TimeUnit.MILLISECONDS)) {
+			api.sendRequest();
+			return true;
 		} else {
-			//TODO 表示连接不够，开始出现等待，如果出现一次等待就开始计算要丢弃的请求数
-			long cost = System.currentTimeMillis() - context.getStartTime();
+			// TODO 表示连接不够，开始出现等待，如果出现一次等待就开始计算要丢弃的请求数
+			long cost = System.currentTimeMillis() - start;
 			discardCnt.set(currTpsPlain.get() * cost / 1000);
-			periodRealDiscardCnt.incrementAndGet();
+			return false;
 		}
+	}
+
+	private boolean trySendRequestNoWait() {
+		if (connections.tryAcquire()) {
+			api.sendRequest();
+			return true;
+		}
+		return false;
 	}
 }

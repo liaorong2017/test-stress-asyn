@@ -1,12 +1,10 @@
 package org.raje.test.config;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.raje.test.common.ConnectionResources;
-import org.raje.test.request.RequestContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
@@ -21,19 +19,20 @@ public class AppConfig {
 	@Autowired
 	private Environment env;
 
-	@Bean(name = "reqListBlocking")
-	public BlockingQueue<RequestContext> blockingQueue() {
-		return new LinkedBlockingQueue<RequestContext>();
-	}
-
 	@Bean(name = "currTpsPlain")
 	public AtomicInteger currTpsPlain() {
 		return new AtomicInteger(0);
 	}
 
 	@Bean(name = "maxCurrent")
-	public ConnectionResources semaphore() {
+	public ConnectionResources maxCurrent() {
 		return new ConnectionResources(Integer.parseInt(env.getProperty("max.current")));
+	}
+	
+	
+	@Bean(name = "staySenderRequest")
+	public Semaphore staySenderRequest() {
+		return new Semaphore(0);
 	}
 	
 	@Bean(name = "periodDiscardCnt")

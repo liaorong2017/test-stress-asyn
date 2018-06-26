@@ -17,7 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-public class RequestLoadRunner {
+public class PlainLoadRunner {
 	@Resource
 	private Counter counter;
 	
@@ -27,7 +27,7 @@ public class RequestLoadRunner {
 	@Resource
 	private AtomicLong periodRealDiscardCnt;
 
-	private final Logger LG = LoggerFactory.getLogger(RequestLoadRunner.class);
+	private final Logger LG = LoggerFactory.getLogger(PlainLoadRunner.class);
 	private ScheduledExecutorService scheduledExecutorService = Executors
 			.newSingleThreadScheduledExecutor(new ThreadFactory() {
 				@Override
@@ -40,7 +40,7 @@ public class RequestLoadRunner {
 	private String conCurrencyStr;
 
 	@Resource
-	private RequestContextTask task;
+	private RequestSemaphoreTask task;
 
 	@Resource
 	private RequestSender requestSender;

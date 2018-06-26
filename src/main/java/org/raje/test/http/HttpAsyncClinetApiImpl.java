@@ -1,7 +1,5 @@
 package org.raje.test.http;
 
-import java.util.concurrent.Semaphore;
-
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
@@ -11,10 +9,10 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.nio.client.HttpAsyncClient;
+import org.raje.test.common.ConnectionResources;
 import org.raje.test.monitor.Counter;
 import org.raje.test.monitor.Monitor;
 import org.raje.test.request.AsyncClinetApi;
-import org.raje.test.request.RequestContext;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -29,29 +27,32 @@ public class HttpAsyncClinetApiImpl implements AsyncClinetApi {
 	private HttpAsyncClientPoolManager asyncHttpClientPoolManager;
 
 	@Resource
-	private Semaphore semaphore;
+	private ConnectionResources connections;
 
-	private HttpAsyncClient httpAsyncClient;;
+	@Resource
+	private HttpAsynCallBack callBack;
 
 	@Resource
 	private Monitor monitor;
 
+	private HttpAsyncClient httpAsyncClient;
+
 	@PostConstruct
 	public void init() {
 		httpAsyncClient = asyncHttpClientPoolManager.getHttpAsyncClient();
+
 	}
 
-	public void sendRequest(RequestContext context) {
+	public void sendRequest() {
 		try {
-			context.setStartTime(System.currentTimeMillis());
-			HttpRequestProducer producer = (HttpRequestProducer) context.getProducer();
+			HttpRequestContext callBack = new HttpRequestContext(this.callBack, this.monitor, this.connections);
 			HttpRequestBase httpRequest = null;
 			if (httpConfig.getMethod().trim().toUpperCase().equals("POST")) {
-				httpRequest = buidHttpPost(producer.producerRequest());
+				httpRequest = buidHttpPost(httpConfig.getBody());
 			} else {
 				httpRequest = buidHttpGet();
 			}
-			httpAsyncClient.execute(httpRequest, new HttpFutureCallback(context, monitor, semaphore));
+			httpAsyncClient.execute(httpRequest, callBack);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
