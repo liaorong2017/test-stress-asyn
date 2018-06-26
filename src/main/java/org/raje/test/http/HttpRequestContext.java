@@ -25,21 +25,21 @@ public class HttpRequestContext implements FutureCallback<HttpResponse> {
 
 	private Monitor monitor;
 
-	private ConnectionResources semaphore;
+	private ConnectionResources connectionResources;
 
 	private HttpAsynCallBack callBack;
 
 	public HttpRequestContext(HttpAsynCallBack callBack, Monitor monitor, ConnectionResources semaphore) {
 		super();
 		this.monitor = monitor;
-		this.semaphore = semaphore;
+		this.connectionResources = semaphore;
 		this.callBack = callBack;
 		this.start = System.currentTimeMillis();
 	}
 
 	@Override
 	public void completed(HttpResponse httpResponse) {
-		semaphore.release();
+		connectionResources.release();
 		try {
 			int statusCode = httpResponse.getStatusLine().getStatusCode();
 			if (statusCode != HttpStatus.SC_OK) {
@@ -62,7 +62,7 @@ public class HttpRequestContext implements FutureCallback<HttpResponse> {
 
 	@Override
 	public void failed(Exception ex) {
-		semaphore.release();
+		connectionResources.release();
 		long costTime = System.currentTimeMillis() - start;
 		if (ex instanceof ConnectException) {
 			if (ex.getMessage().contains("Connection refused")) {
@@ -90,7 +90,7 @@ public class HttpRequestContext implements FutureCallback<HttpResponse> {
 
 	@Override
 	public void cancelled() {
-		semaphore.release();
+		connectionResources.release();
 		new RuntimeException().printStackTrace();
 	}
 

@@ -1,5 +1,6 @@
 package org.raje.test.request;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -20,21 +21,25 @@ import org.springframework.stereotype.Component;
 public class PlainLoadRunner {
 	@Resource
 	private Counter counter;
-	
+
 	@Resource
 	private AtomicInteger currTpsPlain;
-	
+
 	@Resource
 	private AtomicLong periodRealDiscardCnt;
 
+	@Value("${send.request.threads:1}")
+	private int sendThreads;
+
 	private final Logger LG = LoggerFactory.getLogger(PlainLoadRunner.class);
-	private ScheduledExecutorService scheduledExecutorService = Executors
-			.newSingleThreadScheduledExecutor(new ThreadFactory() {
-				@Override
-				public Thread newThread(Runnable r) {
-					return new Thread(r, "req_load_runner");
-				}
-			});
+	private ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+		@Override
+		public Thread newThread(Runnable r) {
+			return new Thread(r, "plain_load_runner");
+		}
+	});
+
+	private Executor sendRequestExecutor;
 
 	@Value("${concurrent}")
 	private String conCurrencyStr;
@@ -47,7 +52,16 @@ public class PlainLoadRunner {
 
 	@PostConstruct
 	public void init() {
-		new Thread(requestSender, "req_sender").start();
+		sendRequestExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2, new ThreadFactory() {
+			@Override
+			public Thread newThread(Runnable r) {
+				return new Thread(r, "sender_request");
+			}
+		});
+		
+		for (int i = 0; i < Runtime.getRuntime().availableProcessors() * 2; i++) {
+			sendRequestExecutor.execute(requestSender);
+		}
 		loadTask();
 
 	}
@@ -72,7 +86,7 @@ public class PlainLoadRunner {
 	}
 
 	private int exceptTps(int plainTps) {
-		int exceptTps = (int) Math.min(plainTps, counter.adjustTPS());				
+		int exceptTps = (int) Math.min(plainTps, counter.adjustTPS());
 		long actulTps = currTpsPlain.get() - periodRealDiscardCnt.get();
 		counter.setRealMaxTps(actulTps);
 		periodRealDiscardCnt.set(0);
@@ -81,7 +95,7 @@ public class PlainLoadRunner {
 	}
 
 	private void loadRun(long lastTimeSeconds, int concurrentCount) {
-		
+
 		double totalRequest = lastTimeSeconds * concurrentCount;
 		double totalMicroSeconds = lastTimeSeconds * 1000 * 1000;
 		int timeInterval = 1;
@@ -99,12 +113,6 @@ public class PlainLoadRunner {
 		} catch (InterruptedException e) {
 			LG.error("testConcurrency sleep InterruptedException", e);
 		}
-	}
-
-	public static void main(String[] args) {
-		// int tem = 12;
-		// Math.ceil(5/2.0)
-		System.out.println(Math.round(5 / 2.0));
 	}
 
 }
