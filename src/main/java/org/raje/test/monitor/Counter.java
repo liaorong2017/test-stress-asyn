@@ -35,6 +35,7 @@ public class Counter {
 		synchronized (Counter.class) {
 			if ((currTime + (intervalTime * sec)) < startTime) {
 				coutGlobalCost();
+				setRealMaxTps(totalCnt / intervalTime);
 				doPriant();
 				reset(startTime);
 			}
@@ -58,6 +59,7 @@ public class Counter {
 		} else {
 			adjustAvgCost = (Math.max(currAvgCost, adjustAvgCost) + Math.min(currAvgCost, adjustAvgCost) * 2) / 3;
 		}
+		
 	}
 
 	public long getAdjustAvgCost() {

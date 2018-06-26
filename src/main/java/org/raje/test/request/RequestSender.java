@@ -66,14 +66,14 @@ public class RequestSender implements Runnable {
 	}
 
 	private boolean trySendRequest() throws InterruptedException {
-		long start = System.currentTimeMillis();
+		//long start = System.currentTimeMillis();
 		if (connections.tryAcquire(acquireTimeout, TimeUnit.MILLISECONDS)) {
 			api.sendRequest();
 			return true;
 		} else {
 			// TODO 表示连接不够，开始出现等待，如果出现一次等待就开始计算要丢弃的请求数
-			long cost = System.currentTimeMillis() - start;
-			discardCnt.set(currTpsPlain.get() * cost / 1000);
+			//long cost = System.currentTimeMillis() - start;
+			discardCnt.set(currTpsPlain.get() * acquireTimeout / 1000);
 			return false;
 		}
 	}
