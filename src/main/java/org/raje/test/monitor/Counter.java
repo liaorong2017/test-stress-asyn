@@ -1,5 +1,7 @@
 package org.raje.test.monitor;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.annotation.Resource;
 
 import org.raje.test.common.ConnectionResources;
@@ -18,8 +20,10 @@ public class Counter {
 	private long intervalTime;
 
 	@Resource
-	private ConnectionResources semaphore;
+	private ConnectionResources connections;
 
+	@Resource(name = "currTpsPlain")
+	private AtomicInteger curPlainTps;
 
 	private long currTime = System.currentTimeMillis();
 	private long succCnt = 0l;
@@ -28,6 +32,7 @@ public class Counter {
 	private long totalCost = 0l;
 	private long index = 1l;
 	private long adjustAvgCost = 0l;
+	private long limitTps = Long.MAX_VALUE;
 	private long realMaxTps = 0l;
 	private long remmainCnt = 0l;
 
@@ -35,6 +40,7 @@ public class Counter {
 		synchronized (Counter.class) {
 			if ((currTime + (intervalTime * sec)) < startTime) {
 				coutGlobalCost();
+				setRealMaxTps(totalCnt / intervalTime);
 				doPriant();
 				reset(startTime);
 			}
@@ -43,11 +49,9 @@ public class Counter {
 	}
 
 	private void doPriant() {
-		System.out.println(String.format(
-				"第%d个%d秒: avgCost:%d, succ:%d, fail:%d, succRate:%d , curTPS:%d, -----[adjAvgCost:%s,adjTps:%s,realMaxTps:%s,current:%s,]",
-				index, intervalTime, totalCost / totalCnt, succCnt, errCnt, succCnt * 100 / totalCnt,
-				totalCnt / intervalTime, adjustAvgCost, adjustAvgCost == 0 ? 0 : adjustTPS(), realMaxTps,
-				this.maxCurrent - this.semaphore.availablePermits()));
+		System.out.println(String.format("第%d个%d秒: avgCost:%d, succ:%d, fail:%d, succRate:%d , TPS:%d,[recentCost:%s,plainTps:%s,limitTps:%s,connect:%s,recentMaxTps:%s]", index, intervalTime,
+				totalCost / totalCnt, succCnt, errCnt, succCnt * 100 / totalCnt, totalCnt / intervalTime, adjustAvgCost, curPlainTps.get(), limitTps == Long.MAX_VALUE ? 0 : limitTps,
+				this.maxCurrent - this.connections.availablePermits(),realMaxTps));
 
 	}
 
@@ -58,6 +62,7 @@ public class Counter {
 		} else {
 			adjustAvgCost = (Math.max(currAvgCost, adjustAvgCost) + Math.min(currAvgCost, adjustAvgCost) * 2) / 3;
 		}
+
 	}
 
 	public long getAdjustAvgCost() {
@@ -88,10 +93,14 @@ public class Counter {
 			return Integer.MAX_VALUE;
 		}
 		long theoreticalTps = (1000 * maxCurrent) / adjustAvgCost;
-		if (remmainCnt >= 10) {			
-			return Math.min(theoreticalTps, realMaxTps);
+		if (remmainCnt >= 10) {
+			if (realMaxTps < theoreticalTps) {
+				limitTps = (realMaxTps * 110) / 100;
+				remmainCnt = 0;
+				realMaxTps = 0;
+			}
 		}
-		return theoreticalTps;
+		return Math.min(theoreticalTps, limitTps);
 	}
 
 	public long getIntervalTime() {
@@ -102,14 +111,14 @@ public class Counter {
 		return realMaxTps;
 	}
 
-
-	public void setRealMaxTps(long realMaxTps) {
-		if (this.realMaxTps >= realMaxTps) {
-			remmainCnt++;
+	public void setRealMaxTps(long currTps) {
+		if (this.realMaxTps >= currTps) {
+			if (Long.MAX_VALUE == limitTps || limitTps <= this.curPlainTps.get())
+				remmainCnt++;
 		} else {
 			remmainCnt = 0;
 		}
-		this.realMaxTps = Math.max(realMaxTps, this.realMaxTps);
+		this.realMaxTps = Math.max(currTps, this.realMaxTps);
 	}
 
 }

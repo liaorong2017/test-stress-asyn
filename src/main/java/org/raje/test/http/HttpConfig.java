@@ -50,6 +50,9 @@ public class HttpConfig {
 	@Value("${http.headers:}")
 	private String headerStr;
 
+	@Value("${http.body:}")
+	private String body;
+
 	private List<Header> headers = new ArrayList<Header>();
 
 	@PostConstruct
@@ -136,6 +139,10 @@ public class HttpConfig {
 
 	public void setHeaders(List<Header> headers) {
 		this.headers = headers;
+	}
+
+	public String getBody() {
+		return body;
 	}
 
 }

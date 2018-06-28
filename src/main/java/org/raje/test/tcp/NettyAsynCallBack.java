@@ -1,17 +1,15 @@
 package org.raje.test.tcp;
 
 import org.raje.test.common.Result;
-import org.raje.test.request.AsynCallBack;
 import org.springframework.stereotype.Component;
 
 @Component
-public class NettyAsynCallBack implements AsynCallBack<String> {
+public class NettyAsynCallBack {
 
-	@Override
 	public Result callBack(String content) {
 		if (content.startsWith("HTTP/1.1 200 OK")) {
 			return Result.SUCC;
-		}else {
+		} else {
 			return Result.httpStatusNoOk;
 		}
 	}
