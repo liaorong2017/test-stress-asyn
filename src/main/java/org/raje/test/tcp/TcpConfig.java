@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-public class NettyConfig {
+public class TcpConfig {
 
 	@Value("${tcp.host}")
 	protected String host;
@@ -23,9 +23,6 @@ public class NettyConfig {
 
 	@Value("${tcp.write.timeout.second:1}")
 	protected int writeTimeout;
-
-	@Value("${tcp.max.connections}")
-	protected int maxConnections;
 
 	public String getHost() {
 		return host;
@@ -73,14 +70,6 @@ public class NettyConfig {
 
 	public void setWriteTimeout(int writeTimeout) {
 		this.writeTimeout = writeTimeout;
-	}
-
-	public int getMaxConnections() {
-		return maxConnections;
-	}
-
-	public void setMaxConnections(int maxConnections) {
-		this.maxConnections = maxConnections;
 	}
 
 }

@@ -51,15 +51,13 @@ public class HttpResponseCallback implements FutureCallback<HttpResponse> {
 			HttpEntity responseEntity = httpResponse.getEntity();
 			String content = EntityUtils.toString(responseEntity);
 
-			Result resulte = callBack.callBack(content);
-			monitor.log(start, resulte);
+			monitor.log(start, callBack.callBack(content));
 
 		} catch (ParseException e) {
 			LG.error("completed error", e);
 		} catch (IOException e) {
 			LG.error("completed error", e);
 		}
-
 
 	}
 
