@@ -33,9 +33,6 @@ public class RequestSender implements Runnable {
 	@Resource
 	private AtomicInteger currTpsPlain;
 
-	@Resource
-	private AtomicLong periodRealDiscardCnt;
-
 	private AtomicLong discardCnt = new AtomicLong(0);
 
 	@Value("${acquire.timeout:10}")
@@ -49,13 +46,9 @@ public class RequestSender implements Runnable {
 				if (discardCnt.get() > 0)
 					discardCnt.decrementAndGet();
 				if (discardCnt.get() <= 0) {
-					if(!trySendRequest()){
-						periodRealDiscardCnt.incrementAndGet();
-					}
+					trySendRequest();
 				} else {
-					if (!trySendRequestNoWait()) {
-						periodRealDiscardCnt.incrementAndGet();
-					}
+					trySendRequestNoWait();
 				}
 			} catch (Exception e) {
 				LG.error("异常终止：", e);
@@ -65,16 +58,14 @@ public class RequestSender implements Runnable {
 
 	}
 
-	private boolean trySendRequest() throws InterruptedException {
-		//long start = System.currentTimeMillis();
+	private void trySendRequest() throws InterruptedException {
+		// long start = System.currentTimeMillis();
 		if (connections.tryAcquire(acquireTimeout, TimeUnit.MILLISECONDS)) {
 			api.sendRequest();
-			return true;
 		} else {
 			// TODO 表示连接不够，开始出现等待，如果出现一次等待就开始计算要丢弃的请求数
-			//long cost = System.currentTimeMillis() - start;
+			// long cost = System.currentTimeMillis() - start;
 			discardCnt.set(currTpsPlain.get() * acquireTimeout / 1000);
-			return false;
 		}
 	}
 

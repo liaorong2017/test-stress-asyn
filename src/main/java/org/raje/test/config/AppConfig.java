@@ -2,7 +2,6 @@ package org.raje.test.config;
 
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.raje.test.common.ConnectionResources;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,18 +27,10 @@ public class AppConfig {
 	public ConnectionResources maxCurrent() {
 		return new ConnectionResources(Integer.parseInt(env.getProperty("max.current")));
 	}
-	
-	
+
 	@Bean(name = "staySenderRequest")
 	public Semaphore staySenderRequest() {
 		return new Semaphore(0);
 	}
-	
-	@Bean(name = "periodDiscardCnt")
-	public AtomicLong periodRealDiscardCnt() {
-		return new AtomicLong(0);
-	}
-	
-	
 
 }

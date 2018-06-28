@@ -6,7 +6,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
@@ -24,9 +23,6 @@ public class PlainLoadRunner {
 
 	@Resource
 	private AtomicInteger currTpsPlain;
-
-	@Resource
-	private AtomicLong periodRealDiscardCnt;
 
 	@Value("${send.request.threads:1}")
 	private int sendThreads;
@@ -58,7 +54,7 @@ public class PlainLoadRunner {
 				return new Thread(r, "sender_request");
 			}
 		});
-		
+
 		for (int i = 0; i < Runtime.getRuntime().availableProcessors() * 2; i++) {
 			sendRequestExecutor.execute(requestSender);
 		}
@@ -87,9 +83,6 @@ public class PlainLoadRunner {
 
 	private int exceptTps(int plainTps) {
 		int exceptTps = (int) Math.min(plainTps, counter.adjustTPS());
-		long actulTps = currTpsPlain.get() - periodRealDiscardCnt.get();
-		counter.setRealMaxTps(actulTps);
-		periodRealDiscardCnt.set(0);
 		currTpsPlain.set(exceptTps);
 		return exceptTps;
 	}
