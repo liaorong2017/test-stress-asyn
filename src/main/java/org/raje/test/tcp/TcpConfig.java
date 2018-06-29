@@ -18,10 +18,10 @@ public class TcpConfig {
 	@Value("${tcp.pool.acquire.timeout:10}")
 	protected int acquireTimeoutMillis;
 
-	@Value("${tcp.read.timeout.second:1}")
+	@Value("${tcp.read.timeout:500}")
 	protected int readTimeout;
 
-	@Value("${tcp.write.timeout.second:1}")
+	@Value("${tcp.write.timeout:500}")
 	protected int writeTimeout;
 
 	public String getHost() {

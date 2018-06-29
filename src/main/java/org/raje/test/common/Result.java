@@ -11,6 +11,7 @@ public class Result {
 	public static final Result httpStatusNoOk = new Result(6, "httpstatus not 200");
 	public static final Result refused = new Result(7, "Connection refused");
 	public static final Result connectionClosed = new Result(8, "Connection closed");
+	public static final Result timeout = new Result(9, "timeout");
 
 	private int result;
 	private String info;

@@ -1,17 +1,19 @@
 package org.raje.test.tcp;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.nio.ByteBuffer;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.Queue;
-import java.util.concurrent.Executor;
 
 import javax.annotation.Resource;
 
+import org.raje.test.common.ConnectionResources;
 import org.raje.test.common.Result;
 import org.raje.test.monitor.Monitor;
 import org.slf4j.Logger;
@@ -33,13 +35,20 @@ public class NioThread extends Thread {
 	private Queue<NioContext> reqList;
 
 	@Resource
-	private Executor executor;
+	private Monitor monitor;
 
 	@Resource
-	public Monitor monitor;
+	private NioCallBack callBack;
 
 	@Resource
 	private Selector selector;
+
+	@Resource
+	private ConnectionResources connections;
+
+	public NioThread() {
+		super("io_selector");
+	}
 
 	public void run() {
 		while (true) {
@@ -47,8 +56,8 @@ public class NioThread extends Thread {
 				Iterator<NioContext> itrr = todoList.iterator();
 				while (itrr.hasNext()) {
 					NioContext reqCtx = itrr.next();
+					reqCtx.setStart(System.currentTimeMillis());
 					reqCtx.setSelectionKey(reqCtx.getSocketChannel().register(selector, SelectionKey.OP_CONNECT, reqCtx));
-					LG.info("add reqCtx to reqList");
 					reqList.add(reqCtx);
 					itrr.remove();
 				}
@@ -95,6 +104,7 @@ public class NioThread extends Thread {
 
 	private void handleConnectable(SelectionKey selectionKey) {
 		SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+		NioContext context = (NioContext) selectionKey.attachment();
 		// 当连接等待建立时完成建立
 		if (socketChannel.isConnectionPending()) {
 			try {
@@ -103,13 +113,24 @@ public class NioThread extends Thread {
 					// 切换到等待发送请求
 					selectionKey.interestOps(SelectionKey.OP_WRITE);
 				} else {
-					NioContext context = (NioContext) selectionKey.attachment();
+
 					monitor.log(context.getStart(), Result.connectTimeout);
+					LG.error("connect io exception"+socketChannel.finishConnect());
+					// 建立连接异常
+					System.exit(1);
 				}
 			} catch (IOException e) {
-				LG.error("connect io exception", e);
-				// 建立连接异常
-				System.exit(1);
+
+				if (e instanceof ConnectException) {
+					long cost = System.currentTimeMillis() - context.getStart();
+					LG.error("connect timeout :"+cost, e);
+					monitor.log(context.getStart(), Result.connectTimeout);
+				} else {
+
+					LG.error("connect io exception", e);
+					// 建立连接异常
+					System.exit(1);
+				}
 			}
 		}
 	}
@@ -117,23 +138,40 @@ public class NioThread extends Thread {
 	private void handleWritable(SelectionKey selectionKey) {
 		SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
 		NioContext reqCtx = (NioContext) selectionKey.attachment();
-		// 当请求报文未发送完时继续发送
-		// if (reqCtx.getReqBuf().hasRemaining()) {
 		try {
-			LG.info("write data to socket");
 			socketChannel.write(ByteBuffer.wrap(reqCtx.getProducer().producerMessage()));
 		} catch (IOException e) {
 			LG.error("write data to socket error", e);
-			// 建立连接异常
 			System.exit(1);
 		}
-		// }
-		// 当前求报文发送完时切换到等待应答
 		selectionKey.interestOps(SelectionKey.OP_READ);
 
 	}
 
 	private void handleReadable(SelectionKey selectionKey) {
+		connections.release();
+		if(connections.availablePermits() > 50){
+			System.out.println(connections.availablePermits());
+		}
+		SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+		try {			
+			NioContext reqCtx = (NioContext) selectionKey.attachment();
+			ByteBuffer fixedRes = ByteBuffer.allocate(123);
+			socketChannel.read(fixedRes);
+			Result res = callBack.callBack(new String(fixedRes.array(), Charset.forName("GBK")));
+			monitor.log(reqCtx.getStart(), res);
+			reqList.remove(reqCtx);
+		} catch (IOException e) {
+			LG.error("read data to socket error", e);
+			// 建立连接异常
+			System.exit(1);
+		}finally {
+			try {
+				socketChannel.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 
 	}
 

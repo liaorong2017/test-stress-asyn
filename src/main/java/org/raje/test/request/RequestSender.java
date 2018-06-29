@@ -59,7 +59,7 @@ public class RequestSender implements Runnable {
 	}
 
 	private void trySendRequest() throws InterruptedException {
-		// long start = System.currentTimeMillis();
+
 		if (connections.tryAcquire(acquireTimeout, TimeUnit.MILLISECONDS)) {
 			api.sendRequest();
 		} else {

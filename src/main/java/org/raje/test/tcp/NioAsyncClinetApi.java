@@ -35,6 +35,7 @@ public class NioAsyncClinetApi implements AsyncClinetApi {
 	@Resource
 	private TcpConfig config;
 
+	@Resource
 	private RequestProducer producer;
 
 	@PostConstruct
@@ -45,15 +46,14 @@ public class NioAsyncClinetApi implements AsyncClinetApi {
 
 	@Override
 	public void sendRequest() {
-		final NioContext reqCtx = new NioContext(500);
-		reqCtx.setTimeoutCallback(new TimeoutCallback(reqCtx));
+		NioContext reqCtx = new NioContext(1000);
 		reqCtx.setProducer(producer);
 		try {
 			// 注册NIO处理
 			reqCtx.setSocketChannel(SocketChannel.open());
 			reqCtx.getSocketChannel().configureBlocking(false);
 			reqCtx.getSocketChannel().socket().setTcpNoDelay(true);
-			reqCtx.getSocketChannel().socket().setSoTimeout(config.getConnectTimeoutMills());
+			reqCtx.getSocketChannel().socket().setSoTimeout(config.getReadTimeout());			
 			reqCtx.getSocketChannel().connect(new InetSocketAddress(config.getHost(), config.getPort()));
 			// 添加待处理请求
 			todoList.add(reqCtx);

@@ -69,7 +69,7 @@ public class HttpResponseCallback implements FutureCallback<HttpResponse> {
 			if (ex.getMessage().contains("Connection refused")) {
 				monitor.log(start, Result.refused);
 				return;
-			} else if (ex.getMessage().contains("Connection timed out")) {
+			} else if (ex.getMessage().contains("Connection timed out")) {				
 				monitor.log(start, Result.connectTimeout);
 				return;
 			}

@@ -3,32 +3,16 @@ package org.raje.test.tcp;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
-/**
- * Created by Sean Lei on 13/04/2017.
- */
 public class NioContext {
 	private long start;
-	private long timeoutTimestamp;
-	private Runnable timeoutCallback;
+	private long maxTimeoutTime;
 	private SocketChannel socketChannel;
 	private SelectionKey selectionKey;
 	private RequestProducer producer;
 
 	public NioContext(int maxTimeout) {
 		start = System.currentTimeMillis();
-		this.timeoutTimestamp = System.currentTimeMillis() + maxTimeout;
-	}
-
-	public long getTimeoutTimestamp() {
-		return timeoutTimestamp;
-	}
-
-	public Runnable getTimeoutCallback() {
-		return timeoutCallback;
-	}
-
-	public void setTimeoutCallback(Runnable timeoutCallback) {
-		this.timeoutCallback = timeoutCallback;
+		maxTimeoutTime = start + maxTimeout;
 	}
 
 	public SocketChannel getSocketChannel() {
@@ -62,5 +46,15 @@ public class NioContext {
 	public void setProducer(RequestProducer producer) {
 		this.producer = producer;
 	}
+
+	public long getMaxTimeoutTime() {
+		return maxTimeoutTime;
+	}
+
+	public void setMaxTimeoutTime(long maxTimeoutTime) {
+		this.maxTimeoutTime = maxTimeoutTime;
+	}
+	
+	
 
 }

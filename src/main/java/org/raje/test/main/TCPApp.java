@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"org.raje.test.config","org.raje.test.common","org.raje.test.tcp","org.raje.test.monitor"})
+@ComponentScan(basePackages = {"org.raje.test.config","org.raje.test.request","org.raje.test.tcp","org.raje.test.monitor"})
 @EnableAutoConfiguration
 public class TCPApp {
 	public static void main(String[] args) {
