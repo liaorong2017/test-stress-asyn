@@ -35,6 +35,8 @@ public class Counter {
 	private long limitTps = Long.MAX_VALUE;
 	private long realMaxTps = 0l;
 	private long remmainCnt = 0l;
+	private long[] maxTps = new long[10];
+	private int maxTpsIndex = 0;
 
 	public void count(long startTime, int result, long costTime) {
 		synchronized (Counter.class) {
@@ -49,9 +51,11 @@ public class Counter {
 	}
 
 	private void doPriant() {
-		System.out.println(String.format("第%d个%d秒: avgCost:%d, succ:%d, fail:%d, succRate:%d , TPS:%d,[recentCost:%s,plainTps:%s,limitTps:%s,connect:%s,recentMaxTps:%s]", index, intervalTime,
-				totalCost / totalCnt, succCnt, errCnt, succCnt * 100 / totalCnt, totalCnt / intervalTime, adjustAvgCost, curPlainTps.get(), limitTps == Long.MAX_VALUE ? 0 : limitTps,
-				this.maxCurrent - this.connections.availablePermits(),realMaxTps));
+		System.out.println(String.format(
+				"第%d个%d秒: avgCost:%d, succ:%d, fail:%d, succRate:%d , TPS:%d,[recentCost:%s,plainTps:%s,limitTps:%s,connect:%s,recentMaxTps:%s,count:%s]",
+				index, intervalTime, totalCost / totalCnt, succCnt, errCnt, succCnt * 100 / totalCnt,
+				totalCnt / intervalTime, adjustAvgCost, curPlainTps.get(), limitTps == Long.MAX_VALUE ? 0 : limitTps,
+				this.maxCurrent - this.connections.availablePermits(), realMaxTps, remmainCnt));
 
 	}
 
@@ -95,12 +99,30 @@ public class Counter {
 		long theoreticalTps = (1000 * maxCurrent) / adjustAvgCost;
 		if (remmainCnt >= 10) {
 			if (realMaxTps < theoreticalTps) {
-				limitTps = (realMaxTps * 110) / 100;
+				maxTps[maxTpsIndex%10] = realMaxTps;
+				maxTpsIndex++;
+				if(maxTpsIndex < 10) {
+					limitTps = avgMaxTps() * (110 - maxTpsIndex ) / 100;
+				}else {
+					limitTps = avgMaxTps() * 101 / 100;
+				}			
 				remmainCnt = 0;
 				realMaxTps = 0;
 			}
 		}
 		return Math.min(theoreticalTps, limitTps);
+	}
+	
+	public long avgMaxTps() {
+		long sum = 0;
+		for(long tps : maxTps) {
+			sum += tps;
+		}
+		if(maxTpsIndex < 10) {
+			return sum / maxTpsIndex;
+		}else {
+			return sum / 10;
+		}
 	}
 
 	public long getIntervalTime() {
@@ -113,8 +135,15 @@ public class Counter {
 
 	public void setRealMaxTps(long currTps) {
 		if (this.realMaxTps >= currTps) {
-			if (Long.MAX_VALUE == limitTps || limitTps <= this.curPlainTps.get())
+
+			if (Long.MAX_VALUE == limitTps) {
 				remmainCnt++;
+			} else {
+				long threshold = limitTps * 80 / 100;
+				if (currTps > threshold || curPlainTps.get() > threshold) {
+					remmainCnt++;
+				}
+			}
 		} else {
 			remmainCnt = 0;
 		}
