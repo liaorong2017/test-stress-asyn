@@ -44,6 +44,10 @@ public class HttpResponseCallback implements FutureCallback<HttpResponse> {
 		connectionResources.release();
 		try {
 			int statusCode = httpResponse.getStatusLine().getStatusCode();
+			if (HttpStatus.SC_METHOD_NOT_ALLOWED == statusCode) {
+				System.out.println(" 405 Method Not Allowed");
+				System.exit(1);
+			}
 			if (statusCode != HttpStatus.SC_OK) {
 				monitor.log(start, Result.httpStatusNoOk);
 				return;
@@ -69,7 +73,7 @@ public class HttpResponseCallback implements FutureCallback<HttpResponse> {
 			if (ex.getMessage().contains("Connection refused")) {
 				monitor.log(start, Result.refused);
 				return;
-			} else if (ex.getMessage().contains("Connection timed out")) {				
+			} else if (ex.getMessage().contains("Connection timed out")) {
 				monitor.log(start, Result.connectTimeout);
 				return;
 			}
