@@ -71,6 +71,7 @@ public class HttpResponseCallback implements FutureCallback<HttpResponse> {
 		long costTime = System.currentTimeMillis() - start;
 		if (ex instanceof ConnectException) {
 			if (ex.getMessage().contains("Connection refused")) {
+				new RuntimeException(""+costTime).printStackTrace();
 				monitor.log(start, Result.refused);
 				return;
 			} else if (ex.getMessage().contains("Connection timed out")) {
@@ -78,6 +79,7 @@ public class HttpResponseCallback implements FutureCallback<HttpResponse> {
 				return;
 			}
 		} else if (ex instanceof ConnectionClosedException) {
+			new RuntimeException().printStackTrace();
 			monitor.log(start, Result.connectionClosed);
 			return;
 		} else if (ex instanceof SocketTimeoutException) {

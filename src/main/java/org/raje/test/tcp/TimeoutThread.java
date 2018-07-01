@@ -50,8 +50,9 @@ public class TimeoutThread extends Thread {
 					NioContext req = itr.next();
 					if (req.getMaxTimeoutTime() < time) {
 						itr.remove();
-						try {
+						try {							
 							req.getSelectionKey().cancel();
+							req.getSelectionKey().attach(null);
 							req.getSocketChannel().close();
 						} catch (IOException e) {
 							e.printStackTrace();

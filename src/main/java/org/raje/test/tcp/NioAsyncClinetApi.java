@@ -8,6 +8,7 @@ import java.util.Queue;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
+import org.raje.test.common.ConnectionResources;
 import org.raje.test.request.AsyncClinetApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,9 @@ public class NioAsyncClinetApi implements AsyncClinetApi {
 
 	@Resource
 	private RequestProducer producer;
+	
+	@Resource
+	private ConnectionResources connectionResources;
 
 	@PostConstruct
 	public void init() {
@@ -55,11 +59,12 @@ public class NioAsyncClinetApi implements AsyncClinetApi {
 			reqCtx.getSocketChannel().socket().setTcpNoDelay(true);
 			reqCtx.getSocketChannel().socket().setSoTimeout(config.getReadTimeout());			
 			reqCtx.getSocketChannel().connect(new InetSocketAddress(config.getHost(), config.getPort()));
+			
 			// 添加待处理请求
 			todoList.add(reqCtx);
 			selector.wakeup();
 		} catch (Exception e) {
-			LG.error("relayAsyncCall error", e);
+			LG.error("relayAsyncCall error，connectionResources is "+connectionResources.availablePermits(), e);
 		}
 	}
 

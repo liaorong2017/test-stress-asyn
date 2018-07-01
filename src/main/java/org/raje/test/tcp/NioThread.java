@@ -57,7 +57,8 @@ public class NioThread extends Thread {
 				while (itrr.hasNext()) {
 					NioContext reqCtx = itrr.next();
 					reqCtx.setStart(System.currentTimeMillis());
-					reqCtx.setSelectionKey(reqCtx.getSocketChannel().register(selector, SelectionKey.OP_CONNECT, reqCtx));
+					reqCtx.setSelectionKey(
+							reqCtx.getSocketChannel().register(selector, SelectionKey.OP_CONNECT, reqCtx));
 					reqList.add(reqCtx);
 					itrr.remove();
 				}
@@ -87,6 +88,8 @@ public class NioThread extends Thread {
 								// 处理可写事件
 								handleWritable(selectionKey);
 							}
+						}else {
+							LG.error("selectionKey isValid "+selectionKey.isValid() );
 						}
 					}
 					// 移除已处理连接
@@ -115,7 +118,7 @@ public class NioThread extends Thread {
 				} else {
 
 					monitor.log(context.getStart(), Result.connectTimeout);
-					LG.error("connect io exception"+socketChannel.finishConnect());
+					LG.error("connect io exception" + socketChannel.finishConnect());
 					// 建立连接异常
 					System.exit(1);
 				}
@@ -123,15 +126,24 @@ public class NioThread extends Thread {
 
 				if (e instanceof ConnectException) {
 					long cost = System.currentTimeMillis() - context.getStart();
-					LG.error("connect timeout :"+cost, e);
+					LG.error("connect timeout :" + cost, e);
 					monitor.log(context.getStart(), Result.connectTimeout);
 				} else {
-
 					LG.error("connect io exception", e);
 					// 建立连接异常
 					System.exit(1);
 				}
+				finish(selectionKey, socketChannel);
 			}
+		}
+	}
+
+	private void finish(SelectionKey selectionKey, SocketChannel socketChannel) {
+		selectionKey.cancel();
+		selectionKey.attach(null);
+		try {
+			socketChannel.close();
+		} catch (final IOException ignore) {
 		}
 	}
 
@@ -150,27 +162,25 @@ public class NioThread extends Thread {
 
 	private void handleReadable(SelectionKey selectionKey) {
 		connections.release();
-		if(connections.availablePermits() > 50){
+		if (connections.availablePermits() > 50) {
 			System.out.println(connections.availablePermits());
 		}
 		SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-		try {			
-			NioContext reqCtx = (NioContext) selectionKey.attachment();
-			ByteBuffer fixedRes = ByteBuffer.allocate(123);
-			socketChannel.read(fixedRes);
-			Result res = callBack.callBack(new String(fixedRes.array(), Charset.forName("GBK")));
-			monitor.log(reqCtx.getStart(), res);
-			reqList.remove(reqCtx);
+		try {
+			if (socketChannel.isConnected()) {
+				NioContext reqCtx = (NioContext) selectionKey.attachment();
+				ByteBuffer fixedRes = ByteBuffer.allocate(236);
+				socketChannel.read(fixedRes);
+				Result res = callBack.callBack(new String(fixedRes.array(), Charset.forName("GBK")));
+				monitor.log(reqCtx.getStart(), res);
+				reqList.remove(reqCtx);
+			}
 		} catch (IOException e) {
 			LG.error("read data to socket error", e);
 			// 建立连接异常
 			System.exit(1);
-		}finally {
-			try {
-				socketChannel.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+		} finally {
+			finish(selectionKey, socketChannel);
 		}
 
 	}

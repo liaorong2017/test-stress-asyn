@@ -37,7 +37,7 @@ public class HttpAsyncClientPoolManager {
 		builder.setIoThreadCount(httpConfig.getHttpRequestConnTimeout());
 		builder.setSoTimeout(httpConfig.getHttpReadTimeout());
 		builder.setConnectTimeout(httpConfig.getHttpConnTimeout());
-		builder.setSoKeepAlive(true);
+		builder.setSoKeepAlive(false);
 		builder.setSoTimeout(httpConfig.getHttpReadTimeout());
 		builder.setIoThreadCount(Runtime.getRuntime().availableProcessors() * 2);
 		builder.setTcpNoDelay(true);
