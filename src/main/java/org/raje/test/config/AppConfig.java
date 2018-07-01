@@ -2,13 +2,10 @@ package org.raje.test.config;
 
 import java.io.IOException;
 import java.nio.channels.Selector;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.raje.test.common.ConnectionResources;
-import org.raje.test.tcp.NioContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
@@ -38,15 +35,7 @@ public class AppConfig {
 		return new Semaphore(0);
 	}
 
-	@Bean(name = "todoList")
-	public Queue<NioContext> todoList() {
-		return new ConcurrentLinkedQueue<>();
-	}
-
-	@Bean(name = "reqList")
-	public Queue<NioContext> reqList() {
-		return new ConcurrentLinkedQueue<>();
-	}
+	
 
 	@Bean
 	public Selector selector() throws IOException {

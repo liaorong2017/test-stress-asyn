@@ -33,8 +33,7 @@ public class HttpAsyncClientPoolManager {
 
 	private IOReactorConfig builderIOReactorConfig() {
 		IOReactorConfig.Builder builder = IOReactorConfig.custom();
-		builder.setBacklogSize(65535);
-		builder.setIoThreadCount(httpConfig.getHttpRequestConnTimeout());
+		builder.setBacklogSize(65535);	
 		builder.setSoTimeout(httpConfig.getHttpReadTimeout());
 		builder.setConnectTimeout(httpConfig.getHttpConnTimeout());
 		builder.setSoKeepAlive(false);

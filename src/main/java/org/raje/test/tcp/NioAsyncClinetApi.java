@@ -1,13 +1,11 @@
 package org.raje.test.tcp;
 
-import java.net.InetSocketAddress;
-import java.nio.channels.Selector;
-import java.nio.channels.SocketChannel;
-import java.util.Queue;
-
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
+import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
+import org.apache.http.impl.nio.reactor.IOReactorConfig;
+import org.apache.http.nio.reactor.IOReactorException;
 import org.raje.test.common.ConnectionResources;
 import org.raje.test.request.AsyncClinetApi;
 import org.slf4j.Logger;
@@ -18,54 +16,40 @@ import org.springframework.stereotype.Component;
 public class NioAsyncClinetApi implements AsyncClinetApi {
 	private static final Logger LG = LoggerFactory.getLogger(NioAsyncClinetApi.class);
 
-	@Resource(name = "todoList")
-	private Queue<NioContext> todoList;
-
-	@Resource(name = "reqList")
-	private Queue<NioContext> reqList;
-
-	@Resource
-	private NioThread niothread;
-
-	@Resource
-	private TimeoutThread timeoutThread;
-
-	@Resource
-	private Selector selector;
-
-	@Resource
-	private TcpConfig config;
-
-	@Resource
-	private RequestProducer producer;
-	
 	@Resource
 	private ConnectionResources connectionResources;
+	
+	@Resource
+	private DefaultSessionRequestCallback callback;
+
+	private DefaultConnectingIOReactor ioreactor;
 
 	@PostConstruct
 	public void init() {
-		niothread.start();
-		timeoutThread.start();
+		IOReactorConfig ioReactorConfig = builderIOReactorConfig();
+		try {
+			ioreactor = new DefaultConnectingIOReactor(ioReactorConfig);
+		} catch (IOReactorException e) {
+			LG.error("init DefaultConnectingIOReactor error", e);
+			System.exit(1);
+		}
 	}
 
 	@Override
 	public void sendRequest() {
-		NioContext reqCtx = new NioContext(1000);
-		reqCtx.setProducer(producer);
-		try {
-			// 注册NIO处理
-			reqCtx.setSocketChannel(SocketChannel.open());
-			reqCtx.getSocketChannel().configureBlocking(false);
-			reqCtx.getSocketChannel().socket().setTcpNoDelay(true);
-			reqCtx.getSocketChannel().socket().setSoTimeout(config.getReadTimeout());			
-			reqCtx.getSocketChannel().connect(new InetSocketAddress(config.getHost(), config.getPort()));
-			
-			// 添加待处理请求
-			todoList.add(reqCtx);
-			selector.wakeup();
-		} catch (Exception e) {
-			LG.error("relayAsyncCall error，connectionResources is "+connectionResources.availablePermits(), e);
-		}
+		ioreactor.connect(remoteAddress, null, attachment, callback);
+
+	}
+
+	private IOReactorConfig builderIOReactorConfig() {
+		IOReactorConfig.Builder builder = IOReactorConfig.custom();
+		builder.setBacklogSize(65535);
+		builder.setConnectTimeout(400);
+		builder.setSoKeepAlive(false);
+		builder.setSoTimeout(1000);
+		builder.setIoThreadCount(Runtime.getRuntime().availableProcessors() * 2);
+		builder.setTcpNoDelay(true);
+		return builder.build();
 	}
 
 }
