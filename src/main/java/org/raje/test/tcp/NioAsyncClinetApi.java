@@ -1,5 +1,12 @@
 package org.raje.test.tcp;
 
+import java.io.InterruptedIOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
@@ -18,35 +25,66 @@ public class NioAsyncClinetApi implements AsyncClinetApi {
 
 	@Resource
 	private ConnectionResources connectionResources;
-	
+
 	@Resource
 	private DefaultSessionRequestCallback callback;
 
+	@Resource
+	private TcpConfig config;
+
+	@Resource
+	private DefaultIOEventDispatch eventDispatch;
+
+	private SocketAddress remoteAddress;
+
 	private DefaultConnectingIOReactor ioreactor;
+
+	private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+		@Override
+		public Thread newThread(Runnable r) {
+			return new Thread(r, "connection_mng");
+		}
+	});
 
 	@PostConstruct
 	public void init() {
 		IOReactorConfig ioReactorConfig = builderIOReactorConfig();
+
 		try {
 			ioreactor = new DefaultConnectingIOReactor(ioReactorConfig);
-		} catch (IOReactorException e) {
+			executor.execute(new Runnable() {
+
+				@Override
+				public void run() {
+					try {
+						ioreactor.execute(eventDispatch);
+					} catch (Exception e) {
+						LG.error(" DefaultConnectingIOReactor execute error", e);
+						System.exit(1);
+					}
+
+				}
+			});
+		} catch (Exception e) {
 			LG.error("init DefaultConnectingIOReactor error", e);
 			System.exit(1);
 		}
+		remoteAddress = new InetSocketAddress(config.getHost(), config.getPort());
+
 	}
 
 	@Override
 	public void sendRequest() {
-		ioreactor.connect(remoteAddress, null, attachment, callback);
+		ioreactor.connect(remoteAddress, null, new RequestContext(), callback);
 
 	}
 
 	private IOReactorConfig builderIOReactorConfig() {
 		IOReactorConfig.Builder builder = IOReactorConfig.custom();
 		builder.setBacklogSize(65535);
-		builder.setConnectTimeout(400);
+		builder.setConnectTimeout(config.getConnectTimeoutMills());
 		builder.setSoKeepAlive(false);
-		builder.setSoTimeout(1000);
+		builder.setSoTimeout(config.getReadTimeout());
 		builder.setIoThreadCount(Runtime.getRuntime().availableProcessors() * 2);
 		builder.setTcpNoDelay(true);
 		return builder.build();
