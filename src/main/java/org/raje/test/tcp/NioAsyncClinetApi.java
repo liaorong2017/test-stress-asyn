@@ -76,7 +76,7 @@ public class NioAsyncClinetApi implements AsyncClinetApi {
 		if (session == null) {
 			ioreactor.connect(remoteAddress, null, System.currentTimeMillis(), null);
 		} else {
-			session.setAttribute("start", System.currentTimeMillis());
+			session.setAttribute(IOSession.ATTACHMENT_KEY, System.currentTimeMillis());
 			session.setEvent(SelectionKey.OP_WRITE | SelectionKey.OP_READ);
 		}
 

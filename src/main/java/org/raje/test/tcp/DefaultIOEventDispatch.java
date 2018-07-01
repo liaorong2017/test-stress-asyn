@@ -10,6 +10,7 @@ import javax.annotation.Resource;
 import org.apache.http.nio.reactor.IOEventDispatch;
 import org.apache.http.nio.reactor.IOSession;
 import org.raje.test.common.ConnectionResources;
+import org.raje.test.common.Result;
 import org.raje.test.monitor.Monitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +24,7 @@ public class DefaultIOEventDispatch implements IOEventDispatch {
 
 	@Resource
 	private Monitor monitor;
-	
+
 	@Resource
 	private BlockingQueue<IOSession> ioSessions;
 
@@ -42,7 +43,8 @@ public class DefaultIOEventDispatch implements IOEventDispatch {
 		ByteBuffer fixedRes = ByteBuffer.allocate(236);
 		try {
 			session.channel().read(fixedRes);
-			System.out.println(new String(fixedRes.array()));
+			long start = (long) session.getAttribute(IOSession.ATTACHMENT_KEY);
+			monitor.log(start, Result.SUCC);
 			ioSessions.add(session);
 			connectionResources.release();
 		} catch (IOException e) {
@@ -71,7 +73,8 @@ public class DefaultIOEventDispatch implements IOEventDispatch {
 
 	@Override
 	public void disconnected(IOSession session) {
-		System.out.println("session close");
+		long start = (long) session.getAttribute(IOSession.ATTACHMENT_KEY);
+		monitor.log(start, Result.connectionClosed);
 		connectionResources.release();
 	}
 
