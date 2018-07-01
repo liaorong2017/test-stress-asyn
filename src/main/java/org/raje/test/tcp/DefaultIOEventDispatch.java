@@ -3,6 +3,7 @@ package org.raje.test.tcp;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.util.concurrent.BlockingQueue;
 
 import javax.annotation.Resource;
 
@@ -21,7 +22,10 @@ public class DefaultIOEventDispatch implements IOEventDispatch {
 	private ConnectionResources connectionResources;
 
 	@Resource
-	private Monitor monitor;;
+	private Monitor monitor;
+	
+	@Resource
+	private BlockingQueue<IOSession> ioSessions;
 
 	// TODO Auto-generated method stub
 	private String content = "GET /index.html HTTP/1.1\r\nHost: 192.168.24.128:8080\r\nConnection: Keep-Alive\r\nUser-Agent: Apache-HttpAsyncClient/4.1.3 (Java/1.8.0_91)\r\n\r\n";
@@ -39,6 +43,8 @@ public class DefaultIOEventDispatch implements IOEventDispatch {
 		try {
 			session.channel().read(fixedRes);
 			System.out.println(new String(fixedRes.array()));
+			ioSessions.add(session);
+			connectionResources.release();
 		} catch (IOException e) {
 			LG.error("read error", e);
 			session.close();
