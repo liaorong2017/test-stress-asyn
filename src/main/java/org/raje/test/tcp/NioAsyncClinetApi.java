@@ -1,8 +1,8 @@
 package org.raje.test.tcp;
 
-import java.io.InterruptedIOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.channels.SelectionKey;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -12,8 +12,8 @@ import javax.annotation.Resource;
 
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
-import org.apache.http.nio.reactor.IOReactorException;
-import org.raje.test.common.ConnectionResources;
+import org.apache.http.nio.reactor.IOSession;
+import org.apache.http.nio.reactor.SessionRequest;
 import org.raje.test.request.AsyncClinetApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,12 +24,6 @@ public class NioAsyncClinetApi implements AsyncClinetApi {
 	private static final Logger LG = LoggerFactory.getLogger(NioAsyncClinetApi.class);
 
 	@Resource
-	private ConnectionResources connectionResources;
-
-	@Resource
-	private DefaultSessionRequestCallback callback;
-
-	@Resource
 	private TcpConfig config;
 
 	@Resource
@@ -38,6 +32,8 @@ public class NioAsyncClinetApi implements AsyncClinetApi {
 	private SocketAddress remoteAddress;
 
 	private DefaultConnectingIOReactor ioreactor;
+
+	private IOSession ioSession;
 
 	private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
 		@Override
@@ -75,7 +71,12 @@ public class NioAsyncClinetApi implements AsyncClinetApi {
 
 	@Override
 	public void sendRequest() {
-		ioreactor.connect(remoteAddress, null, new RequestContext(), callback);
+		if(ioSession == null || ioSession.isClosed()) {
+		  SessionRequest request = ioreactor.connect(remoteAddress, null, new RequestContext(), null);
+		  ioSession = request.getSession();
+		}else {
+			ioSession.setEvent(SelectionKey.OP_WRITE | SelectionKey.OP_READ);
+		}
 
 	}
 
