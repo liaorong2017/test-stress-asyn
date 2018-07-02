@@ -1,13 +1,8 @@
 package org.raje.test.config;
 
-import java.io.IOException;
-import java.nio.channels.Selector;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.http.nio.reactor.IOSession;
 import org.raje.test.common.ConnectionResources;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -39,17 +34,4 @@ public class AppConfig {
 	}
 
 	
-
-	@Bean
-	public Selector selector() throws IOException {
-		return Selector.open();
-	}
-	
-	
-	@Bean
-	public BlockingQueue<IOSession>  ioSessions(){
-		return new LinkedBlockingQueue<IOSession>();
-		
-	}
-
 }

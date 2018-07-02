@@ -3,8 +3,8 @@ package org.raje.test.tcp;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.util.concurrent.BlockingQueue;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
 import org.apache.http.nio.reactor.IOEventDispatch;
@@ -12,13 +12,10 @@ import org.apache.http.nio.reactor.IOSession;
 import org.raje.test.common.ConnectionResources;
 import org.raje.test.common.Result;
 import org.raje.test.monitor.Monitor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class DefaultIOEventDispatch implements IOEventDispatch {
-	private static final Logger LG = LoggerFactory.getLogger(DefaultIOEventDispatch.class);
 	@Resource
 	private ConnectionResources connectionResources;
 
@@ -26,10 +23,20 @@ public class DefaultIOEventDispatch implements IOEventDispatch {
 	private Monitor monitor;
 
 	@Resource
-	private BlockingQueue<IOSession> ioSessions;
+	private SimpleIOSessionPool pool;
+
+	
 
 	// TODO Auto-generated method stub
-	private String content = "GET /index.html HTTP/1.1\r\nHost: 192.168.24.128:8080\r\nConnection: Keep-Alive\r\nUser-Agent: Apache-HttpAsyncClient/4.1.3 (Java/1.8.0_91)\r\n\r\n";
+	private StringBuilder req = new StringBuilder();
+
+	@PostConstruct
+	public void init() {
+		req.append("POST /sync.do HTTP/1.1\r\n");
+		req.append("Content-Length: 0\r\n");
+		req.append("Connection: Keep-Alive\r\n");
+		req.append("Host: 10.12.142.248:19105\r\n\r\n");
+	}
 
 	@Override
 	public void connected(IOSession session) {
@@ -38,43 +45,43 @@ public class DefaultIOEventDispatch implements IOEventDispatch {
 
 	@Override
 	public void inputReady(IOSession session) {
-		// new RuntimeException("inputReady").printStackTrace();
-
-		ByteBuffer fixedRes = ByteBuffer.allocate(236);
 		try {
+			ByteBuffer fixedRes = ByteBuffer.allocate(123);
 			session.channel().read(fixedRes);
 			long start = (long) session.getAttribute(IOSession.ATTACHMENT_KEY);
 			monitor.log(start, Result.SUCC);
-			ioSessions.add(session);
+			session.clearEvent(SelectionKey.OP_READ);
+			pool.release(session);
 			connectionResources.release();
 		} catch (IOException e) {
-			LG.error("read error", e);
 			session.close();
+			long start = (long) session.getAttribute(IOSession.ATTACHMENT_KEY);
+			monitor.log(start, Result.connectionClosed);
 		}
 	}
 
 	@Override
 	public void outputReady(IOSession session) {
 		try {
-			session.channel().write(ByteBuffer.wrap(content.getBytes()));
+			session.channel().write(ByteBuffer.wrap(req.toString().getBytes()));
 			session.clearEvent(SelectionKey.OP_WRITE);
 		} catch (IOException e) {
-			LG.error("write error", e);
 			session.close();
+			long start = (long) session.getAttribute(IOSession.ATTACHMENT_KEY);
+			monitor.log(start, Result.connectionClosed);
 		}
 
 	}
 
 	@Override
 	public void timeout(IOSession session) {
-		new RuntimeException().printStackTrace();
 		session.close();
+		long start = (long) session.getAttribute(IOSession.ATTACHMENT_KEY);
+		monitor.log(start, Result.readTimeout);
 	}
 
 	@Override
 	public void disconnected(IOSession session) {
-		long start = (long) session.getAttribute(IOSession.ATTACHMENT_KEY);
-		monitor.log(start, Result.connectionClosed);
 		connectionResources.release();
 	}
 
