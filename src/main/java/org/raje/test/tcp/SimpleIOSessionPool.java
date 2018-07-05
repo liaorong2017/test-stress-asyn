@@ -3,11 +3,12 @@ package org.raje.test.tcp;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
-import java.util.concurrent.BlockingQueue;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
@@ -23,13 +24,23 @@ import org.springframework.stereotype.Component;
 public class SimpleIOSessionPool {
 	private static final Logger LG = LoggerFactory.getLogger(NioAsyncClinetApi.class);
 
-	private BlockingQueue<IOSession> sessions = new LinkedBlockingQueue<IOSession>();
+	private Queue<IOSession> sessions = new ConcurrentLinkedQueue<IOSession>();
 
 	@Resource
 	private TcpConfig config;
 
 	@Resource
 	private DefaultIOEventDispatch eventDispatch;
+	
+	
+	@Resource
+	private DefaultSessionRequestCallback callBack;
+
+	@Resource(name = "totalSendCnt")
+	private AtomicInteger totalSendCnt;
+
+	@Resource(name = "hitCacheCnt")
+	private AtomicInteger hitCacheCnt;
 
 	private SocketAddress remoteAddress;
 
@@ -77,6 +88,7 @@ public class SimpleIOSessionPool {
 		builder.setSoTimeout(config.getReadTimeout());
 		builder.setIoThreadCount(Runtime.getRuntime().availableProcessors() * 2);
 		builder.setTcpNoDelay(true);
+		builder.setSelectInterval(100);
 		return builder.build();
 	}
 
@@ -84,13 +96,21 @@ public class SimpleIOSessionPool {
 		sessions.add(session);
 	}
 
+	public void remove(IOSession session) {
+		sessions.remove(session);
+	}
+
 	public void execute() {
 		IOSession session = sessions.poll();
-		if (session == null) {
-			ioreactor.connect(remoteAddress, null, System.currentTimeMillis(), null);
+		if (session == null || session.isClosed()) {
+			totalSendCnt.incrementAndGet();
+			ioreactor.connect(remoteAddress, null, System.currentTimeMillis(), callBack);
 		} else {
+			hitCacheCnt.incrementAndGet();
+			totalSendCnt.incrementAndGet();
 			session.setAttribute(IOSession.ATTACHMENT_KEY, System.currentTimeMillis());
-			session.setEvent(SelectionKey.OP_WRITE | SelectionKey.OP_READ);
+			session.setSocketTimeout(config.getReadTimeout());
+			session.setEvent(SelectionKey.OP_WRITE);
 		}
 	}
 

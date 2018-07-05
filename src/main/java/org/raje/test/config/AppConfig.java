@@ -32,6 +32,17 @@ public class AppConfig {
 	public Semaphore staySenderRequest() {
 		return new Semaphore(0);
 	}
+	
+	@Bean(name = "hitCacheCnt")
+	public AtomicInteger hitCacheCnt() {
+		return new AtomicInteger(0);
+	}
+	
+	
+	@Bean(name = "totalSendCnt")
+	public AtomicInteger totalSendCnt() {
+		return new AtomicInteger(0);
+	}
 
 	
 }

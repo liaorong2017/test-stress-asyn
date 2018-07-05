@@ -13,7 +13,7 @@ public class NioAsyncClinetApi implements AsyncClinetApi {
 
 	@Override
 	public void sendRequest() {
-		pool.execute();
+		pool.execute();	
 	}
 
 }

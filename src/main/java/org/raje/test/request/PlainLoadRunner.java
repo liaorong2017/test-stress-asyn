@@ -48,14 +48,15 @@ public class PlainLoadRunner {
 
 	@PostConstruct
 	public void init() {
-		sendRequestExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2, new ThreadFactory() {
+		int cpucore = Runtime.getRuntime().availableProcessors() * 2;
+		sendRequestExecutor = Executors.newFixedThreadPool(cpucore, new ThreadFactory() {
 			@Override
 			public Thread newThread(Runnable r) {
 				return new Thread(r, "sender_request");
 			}
-		});
-
-		for (int i = 0; i < Runtime.getRuntime().availableProcessors() * 2; i++) {
+		});	
+		//cpucore = 1;
+		for (int i = 0; i < cpucore; i++) {
 			sendRequestExecutor.execute(requestSender);
 		}
 		loadTask();

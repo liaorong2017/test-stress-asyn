@@ -66,30 +66,26 @@ public class Monitor {
 
 	public void log(final long startTime, final Result result) {
 		long costTime = System.currentTimeMillis() - startTime;
-		exe.execute(new Runnable() {
-			public void run() {
-				counter.count(startTime, result.getResult(), costTime);
-				if (enable && socket != null && socket.isConnected())
+		counter.count(startTime, result.getResult(), costTime);
+		if (enable && socket != null && socket.isConnected()) {
+			exe.execute(new Runnable() {
+				public void run() {
+					sendLogToRemoteServer(startTime, result.getResult() < 100 ? result.getInfo() : String.valueOf(result.getResult()), costTime);
+				}
 
-					sendLogToRemoteServer(startTime,
-							result.getResult() < 100 ? result.getInfo() : String.valueOf(result.getResult()), costTime);
-
-			}
-
-			private void sendLogToRemoteServer(long startTime, String result, long costTime) {
-				byte[] rlog = String.format("%d|%s|%s|%s|%d\n", startTime, server, service, result, costTime)
-						.getBytes();
-				synchronized (socket) {
-					try {
-						socket.getOutputStream().write(rlog);
-					} catch (IOException e) {
-						e.printStackTrace();
-						System.exit(-1);
+				private void sendLogToRemoteServer(long startTime, String result, long costTime) {
+					byte[] rlog = String.format("%d|%s|%s|%s|%d\n", startTime, server, service, result, costTime).getBytes();
+					synchronized (socket) {
+						try {
+							socket.getOutputStream().write(rlog);
+						} catch (IOException e) {
+							e.printStackTrace();
+							System.exit(-1);
+						}
 					}
 				}
-			}
-
-		});
+			});
+		}
 
 	}
 

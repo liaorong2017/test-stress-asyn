@@ -25,6 +25,12 @@ public class Counter {
 	@Resource(name = "currTpsPlain")
 	private AtomicInteger curPlainTps;
 
+	@Resource(name = "totalSendCnt")
+	private AtomicInteger totalSendCnt;
+
+	@Resource(name = "hitCacheCnt")
+	private AtomicInteger hitCacheCnt;
+
 	private long currTime = System.currentTimeMillis();
 	private long succCnt = 0l;
 	private long errCnt = 0l;
@@ -51,11 +57,9 @@ public class Counter {
 	}
 
 	private void doPriant() {
-		System.out.println(String.format(
-				"第%d个%d秒: avgCost:%d, succ:%d, fail:%d, succRate:%d , TPS:%d,[recentCost:%s,plainTps:%s,limitTps:%s,connect:%s,recentMaxTps:%s,count:%s]",
-				index, intervalTime, totalCost / totalCnt, succCnt, errCnt, succCnt * 100 / totalCnt,
-				totalCnt / intervalTime, adjustAvgCost, curPlainTps.get(), limitTps == Long.MAX_VALUE ? 0 : limitTps,
-				this.maxCurrent - this.connections.availablePermits(), realMaxTps, remmainCnt));
+		System.out.println(String.format("第%d个%d秒: avgCost:%d, succ:%d, fail:%d, succRate:%d , TPS:%d,[recentCost:%s,plainTps:%s,limitTps:%s,connect:%s,recentMaxTps:%s,count:%s,cacheRate:%s]", index,
+				intervalTime, totalCost / totalCnt, succCnt, errCnt, succCnt * 100 / totalCnt, totalCnt / intervalTime, adjustAvgCost, curPlainTps.get(), limitTps == Long.MAX_VALUE ? 0 : limitTps,
+				this.maxCurrent - this.connections.availablePermits(), realMaxTps, remmainCnt, hitCacheCnt.get() == 0 ? 0 : hitCacheCnt.get() * 100 / totalSendCnt.get()));
 
 	}
 
@@ -90,6 +94,8 @@ public class Counter {
 		errCnt = 0l;
 		totalCnt = 0l;
 		totalCost = 0l;
+		hitCacheCnt.set(0);
+		totalSendCnt.set(0);
 	}
 
 	public long adjustTPS() {
@@ -99,28 +105,28 @@ public class Counter {
 		long theoreticalTps = (1000 * maxCurrent) / adjustAvgCost;
 		if (remmainCnt >= 10) {
 			if (realMaxTps < theoreticalTps) {
-				maxTps[maxTpsIndex%10] = realMaxTps;
+				maxTps[maxTpsIndex % 10] = realMaxTps;
 				maxTpsIndex++;
-				if(maxTpsIndex < 10) {
-					limitTps = avgMaxTps() * (110 - maxTpsIndex ) / 100;
-				}else {
+				if (maxTpsIndex < 10) {
+					limitTps = avgMaxTps() * (110 - maxTpsIndex) / 100;
+				} else {
 					limitTps = avgMaxTps() * 101 / 100;
-				}			
+				}
 				remmainCnt = 0;
 				realMaxTps = 0;
 			}
 		}
 		return Math.min(theoreticalTps, limitTps);
 	}
-	
+
 	public long avgMaxTps() {
 		long sum = 0;
-		for(long tps : maxTps) {
+		for (long tps : maxTps) {
 			sum += tps;
 		}
-		if(maxTpsIndex < 10) {
+		if (maxTpsIndex < 10) {
 			return sum / maxTpsIndex;
-		}else {
+		} else {
 			return sum / 10;
 		}
 	}

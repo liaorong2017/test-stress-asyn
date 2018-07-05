@@ -12,6 +12,8 @@ public class Result {
 	public static final Result refused = new Result(7, "Connection refused");
 	public static final Result connectionClosed = new Result(8, "Connection closed");
 	public static final Result timeout = new Result(9, "timeout");
+	public static final Result cancelled = new Result(10, "cancelled");
+	public static final Result bindException = new Result(11, "bindException");
 
 	private int result;
 	private String info;
