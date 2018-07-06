@@ -64,4 +64,16 @@ public class AppConfig {
 		return new AtomicLong(0);
 	}
 	
+	
+	@Bean(name = "createConnCnt")
+	public AtomicInteger createConnCnt() {
+		return new AtomicInteger(0);
+	}
+
+	
+	@Bean(name = "createConnCost")
+	public AtomicLong createConnCost() {
+		return new AtomicLong(0);
+	}
+	
 }

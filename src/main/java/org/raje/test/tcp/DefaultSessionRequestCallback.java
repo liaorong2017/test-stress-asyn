@@ -3,6 +3,8 @@ package org.raje.test.tcp;
 import java.net.BindException;
 import java.net.ConnectException;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Resource;
 
@@ -21,15 +23,23 @@ public class DefaultSessionRequestCallback implements SessionRequestCallback {
 
 	@Resource
 	private Monitor monitor;
-	
-	
+
 	@Resource(name = "maxCreateConns")
 	private Semaphore maxCreateConns;
+
+	@Resource(name = "createConnCnt")
+	public AtomicInteger createConnCnt;
+
+	@Resource(name = "createConnCost")
+	public AtomicLong createConnCost;
 
 	@Override
 	public void completed(SessionRequest request) {
 		// TODO 连接成功
-		request.getSession().setAttribute("createTime", System.currentTimeMillis());
+		long now = System.currentTimeMillis();
+		request.getSession().setAttribute("createTime", now);
+		createConnCnt.incrementAndGet();
+		createConnCost.addAndGet(now - (long)request.getAttachment());
 		maxCreateConns.release();
 	}
 

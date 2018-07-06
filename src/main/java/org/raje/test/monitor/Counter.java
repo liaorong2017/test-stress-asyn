@@ -38,6 +38,12 @@ public class Counter {
 	@Resource(name = "remainTimes")
 	private AtomicLong remainTimes;
 
+	@Resource(name = "createConnCnt")
+	public AtomicInteger createConnCnt;
+
+	@Resource(name = "createConnCost")
+	public AtomicLong createConnCost;
+
 	private long currTime = System.currentTimeMillis();
 	private long succCnt = 0l;
 	private long errCnt = 0l;
@@ -54,8 +60,8 @@ public class Counter {
 	public void count(long startTime, int result, long costTime) {
 		synchronized (Counter.class) {
 			if ((currTime + (intervalTime * sec)) < startTime) {
-				coutGlobalCost();
-				setRealMaxTps(totalCnt / intervalTime);
+				adjustAvgCost();
+				setRealMaxTps(avgTps());
 				doPriant();
 				reset(startTime);
 			}
@@ -64,16 +70,44 @@ public class Counter {
 	}
 
 	private void doPriant() {
-		System.out
-				.println(String.format("第%d个%d秒: avgCost:%d, succ:%d, fail:%d, succRate:%d , TPS:%d,[recentTm:%s,plainTps:%s,limitTps:%s,connect:%s,recentMaxTps:%s,count:%s,cacheRate:%s,connRmTm:%s,closeCnt:%s]",
-						index, intervalTime, totalCost / totalCnt, succCnt, errCnt, succCnt * 100 / totalCnt, totalCnt / intervalTime, adjustAvgCost, curPlainTps.get(),
-						limitTps == Long.MAX_VALUE ? 0 : limitTps, this.maxCurrent - this.connections.availablePermits(), realMaxTps, remmainCnt,
-						hitCacheCnt.get() == 0 ? 0 : hitCacheCnt.get() * 100 / totalSendCnt.get(), closeCnt.get() == 0 ? 0 : remainTimes.get() / closeCnt.get(),closeCnt.get()));
+		System.out.println(String.format(
+				"第%d个%d秒: avgCost:%d, succ:%d, fail:%d, succRate:%d , TPS:%d,[avgConnTm:%s,plainTps:%s,limitTps:%s,connect:%s,recentMaxTps:%s,count:%s,cacheRate:%s,connRmTm:%s,closeCnt:%s]", index,
+				intervalTime, avgCost(), succCnt, errCnt, succRate(), avgTps(), avgCreateConnectionCostTime(), curPlainTps.get(),
+				limitTps(), currentUsingConn(), realMaxTps, remmainCnt, hitCacheRate(),
+				closeCnt.get() == 0 ? 0 : remainTimes.get() / closeCnt.get(), closeCnt.get()));
 
 	}
 
-	private void coutGlobalCost() {
-		long currAvgCost = totalCost / totalCnt;
+	private long limitTps() {
+		return limitTps == Long.MAX_VALUE ? 0 : limitTps;
+	}
+
+	private long avgTps() {
+		return totalCnt / intervalTime;
+	}
+
+	private long avgCost() {
+		return totalCost / totalCnt;
+	}
+
+	private long succRate() {
+		return succCnt * 100 / totalCnt;
+	}
+
+	private long currentUsingConn() {
+		return this.maxCurrent - this.connections.availablePermits();
+	}
+
+	private int hitCacheRate() {
+		return hitCacheCnt.get() == 0 ? 0 : hitCacheCnt.get() * 100 / totalSendCnt.get();
+	}
+
+	private long avgCreateConnectionCostTime() {
+		return createConnCnt.get() == 0 ? 0 : createConnCost.get() / createConnCnt.get();
+	}
+
+	private void adjustAvgCost() {
+		long currAvgCost = avgCost();
 		if (adjustAvgCost == 0) {
 			adjustAvgCost = currAvgCost;
 		} else {
@@ -107,6 +141,8 @@ public class Counter {
 		totalSendCnt.set(0);
 		closeCnt.set(0);
 		remainTimes.set(0);
+		createConnCnt.set(0);
+		createConnCost.set(0);
 	}
 
 	public long adjustTPS() {

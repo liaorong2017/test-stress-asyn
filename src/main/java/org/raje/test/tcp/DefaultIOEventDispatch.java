@@ -64,7 +64,6 @@ public class DefaultIOEventDispatch implements IOEventDispatch {
 						monitor(session, Result.SUCC);
 						pool.release(session);
 					} else if (len == 142) {
-						//System.out.println("close connection");
 						monitor(session, Result.SUCC);
 					} else if (len < 0) {
 						monitor(session, Result.connectionClosed);
