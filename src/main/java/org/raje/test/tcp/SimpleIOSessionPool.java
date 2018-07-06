@@ -7,7 +7,9 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.PostConstruct;
@@ -16,6 +18,7 @@ import javax.annotation.Resource;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.reactor.IOSession;
+import org.raje.test.common.ConnectionResources;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -31,8 +34,13 @@ public class SimpleIOSessionPool {
 
 	@Resource
 	private DefaultIOEventDispatch eventDispatch;
+
+	@Resource(name = "maxCreateConns")
+	private Semaphore maxCreateConns;
 	
-	
+	@Resource
+	private ConnectionResources connectionResources;
+
 	@Resource
 	private DefaultSessionRequestCallback callBack;
 
@@ -104,7 +112,16 @@ public class SimpleIOSessionPool {
 		IOSession session = sessions.poll();
 		if (session == null || session.isClosed()) {
 			totalSendCnt.incrementAndGet();
-			ioreactor.connect(remoteAddress, null, System.currentTimeMillis(), callBack);
+			try {
+				if (maxCreateConns.tryAcquire(config.getAcquireTimeoutMillis(), TimeUnit.MILLISECONDS)) {
+					ioreactor.connect(remoteAddress, null, System.currentTimeMillis(), callBack);
+				}else{
+					connectionResources.release();	
+				}
+			} catch (InterruptedException e) {
+				LG.error("创建连接中断",e);
+			}
+
 		} else {
 			hitCacheCnt.incrementAndGet();
 			totalSendCnt.incrementAndGet();

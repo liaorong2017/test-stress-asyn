@@ -2,6 +2,7 @@ package org.raje.test.tcp;
 
 import java.net.BindException;
 import java.net.ConnectException;
+import java.util.concurrent.Semaphore;
 
 import javax.annotation.Resource;
 
@@ -20,10 +21,16 @@ public class DefaultSessionRequestCallback implements SessionRequestCallback {
 
 	@Resource
 	private Monitor monitor;
+	
+	
+	@Resource(name = "maxCreateConns")
+	private Semaphore maxCreateConns;
 
 	@Override
 	public void completed(SessionRequest request) {
 		// TODO 连接成功
+		//System.out.println(System.currentTimeMillis() -(long) request.getAttachment());
+		maxCreateConns.release();
 	}
 
 	@Override
@@ -54,6 +61,7 @@ public class DefaultSessionRequestCallback implements SessionRequestCallback {
 
 	private void monitor(SessionRequest request, Result res) {
 		connectionResources.release();
+		maxCreateConns.release();
 		long start = (long) request.getAttachment();
 		monitor.log(start, res);
 	}

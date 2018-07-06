@@ -43,6 +43,12 @@ public class AppConfig {
 	public AtomicInteger totalSendCnt() {
 		return new AtomicInteger(0);
 	}
+	
+	
+	@Bean(name = "maxCreateConns")
+	public Semaphore maxCreateConns() {
+		return new Semaphore(200);
+	}
 
 	
 }
