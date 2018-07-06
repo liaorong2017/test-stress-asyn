@@ -3,6 +3,8 @@ package org.raje.test.tcp;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
@@ -28,6 +30,12 @@ public class DefaultIOEventDispatch implements IOEventDispatch {
 
 	@Resource
 	private SimpleIOSessionPool pool;
+	
+	@Resource(name="closeCnt")
+	private AtomicInteger closeCnt;
+	
+	@Resource(name="remainTimes")
+	private AtomicLong remainTimes;
 
 	// TODO Auto-generated method stub
 	private StringBuilder req = new StringBuilder();
@@ -56,6 +64,7 @@ public class DefaultIOEventDispatch implements IOEventDispatch {
 						monitor(session, Result.SUCC);
 						pool.release(session);
 					} else if (len == 142) {
+						//System.out.println("close connection");
 						monitor(session, Result.SUCC);
 					} else if (len < 0) {
 						monitor(session, Result.connectionClosed);
@@ -69,6 +78,7 @@ public class DefaultIOEventDispatch implements IOEventDispatch {
 					close(session);
 				}
 			} else {
+				System.out.println("close ");
 				monitor(session, Result.connectionClosed);
 			}
 		} else {
@@ -92,7 +102,7 @@ public class DefaultIOEventDispatch implements IOEventDispatch {
 	@Override
 	public void timeout(IOSession session) {
 		if (isAttachmentNull(session)) {
-			monitor(session, Result.readTimeout);
+			monitor(session, Result.readTimeout);		
 		} else {
 			System.out.println("time out");
 		}
@@ -100,6 +110,8 @@ public class DefaultIOEventDispatch implements IOEventDispatch {
 
 	@Override
 	public void disconnected(IOSession session) {
+		closeCnt.incrementAndGet();
+		remainTimes.addAndGet(System.currentTimeMillis() - (long)session.getAttribute("createTime"));
 		if (session.getAttribute("close") == null) {
 			new RuntimeException().printStackTrace();
 		} else {
@@ -126,7 +138,7 @@ public class DefaultIOEventDispatch implements IOEventDispatch {
 		monitor.log((long) session.getAttribute(IOSession.ATTACHMENT_KEY), res);
 		reset(session);
 		connectionResources.release();
-
+		
 	}
 
 }

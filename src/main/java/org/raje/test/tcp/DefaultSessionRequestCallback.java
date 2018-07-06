@@ -29,7 +29,7 @@ public class DefaultSessionRequestCallback implements SessionRequestCallback {
 	@Override
 	public void completed(SessionRequest request) {
 		// TODO 连接成功
-		//System.out.println(System.currentTimeMillis() -(long) request.getAttachment());
+		request.getSession().setAttribute("createTime", System.currentTimeMillis());
 		maxCreateConns.release();
 	}
 

@@ -2,6 +2,7 @@ package org.raje.test.config;
 
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.raje.test.common.ConnectionResources;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +50,18 @@ public class AppConfig {
 	public Semaphore maxCreateConns() {
 		return new Semaphore(200);
 	}
+	
+	
+	
+	@Bean(name = "closeCnt")
+	public AtomicInteger closeCnt() {
+		return new AtomicInteger(0);
+	}
 
+	
+	@Bean(name = "remainTimes")
+	public AtomicLong remainTimes() {
+		return new AtomicLong(0);
+	}
 	
 }
