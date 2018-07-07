@@ -34,10 +34,10 @@ JAVA_OPTS="${JAVA_OPTS} -Dfile.encoding=UTF-8 -Dlog.home=${APP_LOG_HOME}"
 
 #classpath将config放在前边，避免找classpath资源时先去找lib目录中的jar,如果lib中的jar有打包配置文件的话，就会先使用jar中的配置文件
 CLASS_PATH="-classpath ${APP_HOME}/config:${APP_HOME}/lib/*"
-JAVA_MAIN_CLASS="org.raje.test.main.TCPApp"
+JAVA_MAIN_CLASS="org.raje.test.main.HttpApp"
 
 echo ${JAVA_OPTS}
 echo "CLASSPATH:${CLASS_PATH}"
 
-eval "${JAVA_HOME}/bin/java ${JAVA_OPTS} ${CLASS_PATH} ${JAVA_MAIN_CLASS} >> ${APP_LOG_HOME}/out 2>&1 &"
+eval "${JAVA_HOME}/bin/java ${JAVA_OPTS} ${CLASS_PATH} ${JAVA_MAIN_CLASS}"
 echo "server process started"
